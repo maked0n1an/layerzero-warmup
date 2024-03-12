@@ -29,8 +29,8 @@ class ContractsFactory:
                 return OptimismTokenContracts.get_token(token_symbol)
             case Networks.Polygon.name:
                 return PolygonTokenContracts.get_token(token_symbol)
-            case Networks.ZkSync.name:
-                return ZkSyncTokenContracts.get_token(token_symbol)
+            # case Networks.ZkSync.name:
+            #     return ZkSyncTokenContracts.get_token(token_symbol)
             case _:
                 raise ValueError("Network not supported")
 
@@ -256,45 +256,45 @@ class PolygonTokenContracts(TokenContractFetcher, USDVContract):
     )
 
 
-class ZkSyncTokenContracts(TokenContractFetcher):
-    ETH = NativeTokenContract(
-        title=TokenSymbol.ETH,
-        address=TokenContractFetcher.ZERO_ADDRESS
-    )
+# class ZkSyncTokenContracts(TokenContractFetcher):
+#     ETH = NativeTokenContract(
+#         title=TokenSymbol.ETH,
+#         address=TokenContractFetcher.ZERO_ADDRESS
+#     )
 
-    ceBUSD = TokenContract(
-        title=TokenSymbol.BUSD,
-        address='0x2039bb4116B4EFc145Ec4f0e2eA75012D6C0f181'
-    )
+#     ceBUSD = TokenContract(
+#         title=TokenSymbol.BUSD,
+#         address='0x2039bb4116B4EFc145Ec4f0e2eA75012D6C0f181'
+#     )
 
-    WETH = TokenContract(
-        title=TokenSymbol.WETH,
-        address='0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
-        abi=read_json(
-            path=('data', 'abis', 'zksync', 'weth_abi.json')
-        )
-    )
+#     WETH = TokenContract(
+#         title=TokenSymbol.WETH,
+#         address='0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
+#         abi=read_json(
+#             path=('data', 'abis', 'zksync', 'weth_abi.json')
+#         )
+#     )
 
-    WBTC = TokenContract(
-        title=TokenSymbol.WBTC,
-        address='0xBBeB516fb02a01611cBBE0453Fe3c580D7281011',
-        decimals=8
-    )
+#     WBTC = TokenContract(
+#         title=TokenSymbol.WBTC,
+#         address='0xBBeB516fb02a01611cBBE0453Fe3c580D7281011',
+#         decimals=8
+#     )
 
-    USDC = TokenContract(
-        title=TokenSymbol.USDC,
-        address='0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4',
-        decimals=6
-    )
+#     USDC = TokenContract(
+#         title=TokenSymbol.USDC,
+#         address='0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4',
+#         decimals=6
+#     )
 
-    USDT = TokenContract(
-        title=TokenSymbol.USDT,
-        address='0x493257fD37EDB34451f62EDf8D2a0C418852bA4C',
-        decimals=6
-    )
+#     USDT = TokenContract(
+#         title=TokenSymbol.USDT,
+#         address='0x493257fD37EDB34451f62EDf8D2a0C418852bA4C',
+#         decimals=6
+#     )
 
-    SPACE = TokenContract(
-        title='SPACE',
-        address='0x47260090cE5e83454d5f05A0AbbB2C953835f777',
-        decimals=18
-    )
+#     SPACE = TokenContract(
+#         title='SPACE',
+#         address='0x47260090cE5e83454d5f05A0AbbB2C953835f777',
+#         decimals=18
+#     )

@@ -23,6 +23,7 @@ class TokenSymbol(metaclass=Singleton):
     USDT = 'USDT'
     USDC = 'USDC'
     USDC_E = 'USDC_E'
+    USDV = 'USDV'
     WBTC = 'WBTC'
     WETH = 'WETH'
     XDAI = 'xDAI'
@@ -36,6 +37,7 @@ class LogStatus:
     ERROR = 'ERROR'
     CRITICAL = 'CRITICAL'
     
+    APPROVED = 'APPROVED'
     MINTED = 'MINTED'
     BRIDGED = 'BRIDGED'
     SWAPPED = 'SWAPPED'

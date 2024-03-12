@@ -10,8 +10,7 @@ from min_library.models.others.token_amount import TokenAmount
 from min_library.models.transactions.transaction import Transaction
 from min_library.models.transactions.tx import Tx
 from min_library.models.transactions.tx_args import TxArgs
-from min_library.utils.helpers import make_request, text_between
-
+from min_library.utils.helpers import make_request
 
 
 class Contract:
@@ -36,44 +35,6 @@ class Contract:
             return
 
     @staticmethod
-    async def parse_function(text_signature: str) -> dict:
-        """
-        Construct a function dictionary for the Application Binary Interface (ABI) based on the provided text signature.
-
-        :param str text_signature: a text signature, e.g. approve(address,uint256).
-        :return dict: the function dictionary for the ABI.
-        """
-        name, sign = text_signature.split('(', 1)
-        sign = sign[:-1]
-        tuples = []
-        while '(' in sign:
-            tuple_ = text_between(text=sign[:-1], begin='(', end=')')
-            tuples.append(tuple_.split(',') or [])
-            sign = sign.replace(f'({tuple_})', 'tuple')
-
-        inputs = sign.split(',')
-        if inputs == ['']:
-            inputs = []
-
-        function = {
-            'type': 'function',
-            'name': name,
-            'inputs': [],
-            'outputs': [{'type': 'uint256'}]
-        }
-        i = 0
-        for type_ in inputs:
-            input_ = {'type': type_}
-            if type_ == 'tuple':
-                input_['components'] = [{'type': comp_type}
-                                        for comp_type in tuples[i]]
-                i += 1
-
-            function['inputs'].append(input_)
-
-        return function
-
-    @staticmethod
     async def get_contract_attributes(
         contract: ParamsTypes.TokenContract | ParamsTypes.Contract
             | ParamsTypes.Address
@@ -87,8 +48,8 @@ class Contract:
 
         Returns:
             tuple[ChecksumAddress, list | None]: The checksummed contract address and ABI.
-            
-        """        
+
+        """
         abi = None
         address = None
         if type(contract) in ParamsTypes.Address.__args__:
@@ -100,7 +61,7 @@ class Contract:
 
     async def approve(
         self,
-        token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract 
+        token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract
             | ParamsTypes.Address,
         spender_address: ParamsTypes.Address,
         amount: ParamsTypes.Amount | None = None,
@@ -125,8 +86,8 @@ class Contract:
             token_address, _ = await self.get_contract_attributes(contract=token_contract)
             token_contract = await self.get_token_contract(
                 token=token_address
-            )            
-        
+            )
+
         decimals = await self.get_decimals(token_contract=token_contract)
         token_contract = await self.get_token_contract(token=token_contract)
         spender_address = Web3.to_checksum_address(spender_address)
@@ -134,7 +95,7 @@ class Contract:
         if not amount:
             if is_approve_infinity:
                 amount = CommonValues.InfinityInt
-                
+
             else:
                 amount = await self.get_balance(token_contract=token_contract)
 
@@ -143,14 +104,14 @@ class Contract:
 
         else:
             token_amount = amount.Wei
-            
+
         data = token_contract.encodeABI('approve',
                                         args=TxArgs(
                                             spender=spender_address,
                                             amount=token_amount
                                         ).get_tuple())
-        
-        if tx_params: 
+
+        if tx_params:
             new_tx_params = {}
             if 'gas' in tx_params:
                 new_tx_params['gas'] = tx_params['gas']
@@ -160,9 +121,9 @@ class Contract:
                 new_tx_params['multiplier'] = tx_params['multiplier']
             if 'maxPriorityFeePerGas' in tx_params:
                 new_tx_params['maxPriorityFeePerGas'] = (
-                    tx_params['maxPriorityFeePerGas'] 
+                    tx_params['maxPriorityFeePerGas']
                 )
-        
+
         new_tx_params.update({
             'to': token_contract.address,
             'data': data
@@ -320,16 +281,16 @@ class Contract:
             decimals = await token_contract.functions.decimals().call()
 
         return decimals
-    
+
     def add_multiplier_of_gas(
         self,
         tx_params: TxParams | dict,
         multiplier: float | None = None
     ) -> TxParams | dict:
-        
+
         tx_params['multiplier'] = multiplier
         return tx_params
-        
+
     def set_gas_price(
         self,
         gas_price: ParamsTypes.GasPrice,

@@ -8,19 +8,13 @@ from aiohttp import (
     ClientSession
 )
 
-import min_library.models.others.exceptions as exceptions
-
-import asyncio
-import json
-import random
-from pathlib import Path
 from min_library.models.logger.logger import ConsoleLoggerSingleton
-
 from settings.settings import (
     RETRY_COUNT,
     SLEEP_BETWEEN_ACCS_FROM,
     SLEEP_BETWEEN_ACCS_TO
 )
+import min_library.models.others.exceptions as exceptions
 
 
 def retry(func):
