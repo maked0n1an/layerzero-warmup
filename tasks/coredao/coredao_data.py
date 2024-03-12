@@ -1,0 +1,19 @@
+from min_library.models.bridges.bridge_data import TokenBridgeInfo
+from min_library.models.bridges.network_data import NetworkData
+from min_library.models.networks.networks import Networks
+from min_library.models.others.constants import TokenSymbol
+from min_library.models.bridges.network_data_fetcher import NetworkDataFetcher
+from tasks.coredao.coredao_contracts import CoreDaoBridgeContracts
+
+
+class CoredaoData(NetworkDataFetcher):
+    networks_data = {
+        Networks.BSC.name: NetworkData(
+            chain_id=102,
+            bridge_dict={
+                TokenSymbol.USDT: TokenBridgeInfo(
+                    bridge_contract=CoreDaoBridgeContracts.BSC
+                )
+            }
+        )
+    }
