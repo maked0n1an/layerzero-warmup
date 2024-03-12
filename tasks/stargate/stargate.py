@@ -10,23 +10,27 @@ from min_library.models.transactions.tx_args import TxArgs
 from min_library.utils.helpers import sleep
 from tasks.stargate.stargate_contracts import StargateContracts
 from tasks.stargate.stargate_data import StargateData
-from tasks.base_task import BaseTask
+from tasks.swap_task import SwapTask
 
 
-class Stargate(BaseTask):
+class Stargate(SwapTask):
     async def swap(
         self,
         swap_info: SwapInfo,
         max_fee: float = 0.7,
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
-        check = self.validate_swap_inputs(
+        check_message = self.validate_swap_inputs(
             first_arg=self.client.account_manager.network.name,
             second_arg=swap_info.to_network,
             param_type='networks'
         )
-        if check:
-            return check
+        if check_message:
+            self.client.account_manager.custom_logger.log_message(
+                status=LogStatus.ERROR, message=check_message
+            )
+
+            return False
         
         from_network = self.client.account_manager.network.name
 

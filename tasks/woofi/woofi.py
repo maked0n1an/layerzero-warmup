@@ -1,27 +1,32 @@
 from web3.types import TxParams
 
 from min_library.models.contracts.contracts import ContractsFactory
+from min_library.models.others.constants import LogStatus
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.swap.swap_info import SwapInfo
 from min_library.models.swap.swap_query import SwapQuery
 from min_library.models.transactions.tx_args import TxArgs
 from min_library.utils.helpers import sleep
-from tasks.base_task import BaseTask
+from tasks.swap_task import SwapTask
 from tasks.woofi.woofi_contracts import WoofiContracts
 
 
-class WooFi(BaseTask):
+class WooFi(SwapTask):
     async def swap(
         self,
         swap_info: SwapInfo
     ) -> str:
-        check = self.validate_swap_inputs(
-            first_arg=swap_info.from_token,
-            second_arg=swap_info.to_token,
-            param_type='tokens'
+        check_message = self.validate_swap_inputs(
+            first_arg=self.client.account_manager.network.name,
+            second_arg=swap_info.to_network,
+            param_type='networks'
         )
-        if check:
-            return check
+        if check_message:
+            self.client.account_manager.custom_logger.log_message(
+                status=LogStatus.ERROR, message=check_message
+            )
+
+            return False
 
         dex_contract = WoofiContracts.get_dex_contract(
             name='WooRouterV2',

@@ -12,7 +12,7 @@ from min_library.models.swap.swap_info import SwapInfo
 from min_library.models.swap.swap_query import SwapQuery
 
 
-class BaseTask:
+class SwapTask:
     def __init__(self, client: Client):
         self.client = client
 

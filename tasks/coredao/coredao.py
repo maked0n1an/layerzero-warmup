@@ -1,26 +1,31 @@
 from web3.types import TxParams
+from min_library.models.others.constants import LogStatus
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
 
 from min_library.models.swap.swap_info import SwapInfo
 from min_library.models.transactions.tx_args import TxArgs
 from min_library.utils.helpers import sleep
-from tasks.base_task import BaseTask
+from tasks.swap_task import SwapTask
 from tasks.coredao.coredao_data import CoredaoData
 
 
-class CoreDaoBridge(BaseTask):
+class CoreDaoBridge(SwapTask):
     async def bridge(
         self,
         swap_info: SwapInfo
     ) -> str:
-        check = self.validate_swap_inputs(
+        check_message = self.validate_swap_inputs(
             first_arg=self.client.account_manager.network.name,
             second_arg=swap_info.to_network,
             param_type='networks'
         )
-        if check:
-            return check
+        if check_message:
+            self.client.account_manager.custom_logger.log_message(
+                status=LogStatus.ERROR, message=check_message
+            )
+
+            return False
 
         src_bridge_data = CoredaoData.get_token_bridge_info(
             network=self.client.account_manager.network.name,
