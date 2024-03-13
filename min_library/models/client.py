@@ -4,9 +4,7 @@ from min_library.models.account.account_manager import AccountManager
 from min_library.models.contracts.contract import Contract
 from min_library.models.networks.network import Network
 from min_library.models.networks.networks import Networks
-from settings.settings import (
-    SLEEP_BETWEEN_ACCS_FROM, SLEEP_BETWEEN_ACCS_TO
-)
+from settings.settings import IS_CREATE_LOGS_FOR_EVERY_WALLET
 
 
 class Client:
@@ -17,7 +15,7 @@ class Client:
         network: Network = Networks.Goerli,
         proxy: str | None = None,
         check_proxy: bool = True,
-        create_log_file_per_account: bool = False
+        create_log_file_per_account: bool = IS_CREATE_LOGS_FOR_EVERY_WALLET
     ) -> None:
         self.account_manager = AccountManager(
             account_id=account_id,
