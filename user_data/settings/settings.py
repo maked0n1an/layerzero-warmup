@@ -5,7 +5,7 @@ from typing import (
 # Do you want to use wallet names or generate ID's by program?
 #   Use own names: True
 #   Generate IDs: False
-IS_ACCOUNT_NAMES = False
+IS_ACCOUNT_NAMES = True
 
 # Do you want to shuffle wallets?
 IS_SHUFFLE_WALLETS = True
@@ -45,7 +45,7 @@ SLEEP_BETWEEN_ACCS_FROM = 100  # secs
 SLEEP_BETWEEN_ACCS_TO = 600  # secs
 
 # Do you want to create log file for every wallet? Yes - True, No - False
-IS_CREATE_LOGS_FOR_EVERY_WALLET = False
+IS_CREATE_LOGS_FOR_EVERY_WALLET = True
 
 # (not working now) How many retries will be executed if fail?
 RETRY_COUNT = 3

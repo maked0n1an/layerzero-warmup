@@ -4,7 +4,7 @@ from min_library.models.account.account_manager import AccountManager
 from min_library.models.contracts.contract import Contract
 from min_library.models.networks.network import Network
 from min_library.models.networks.networks import Networks
-from settings.settings import IS_CREATE_LOGS_FOR_EVERY_WALLET
+from user_data.settings.settings import IS_CREATE_LOGS_FOR_EVERY_WALLET
 
 
 class Client:

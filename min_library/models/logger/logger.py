@@ -8,7 +8,7 @@ from min_library.models.others.constants import LogStatus
 
 
 class CustomLogger:
-    FOLDER_NAME: str = 'logs'
+    FOLDER_NAME: str = 'user_data/logs'
     LOGGERS: dict[str, logging.Logger] = {}
 
     def __init__(

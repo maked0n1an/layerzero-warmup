@@ -9,7 +9,7 @@ from aiohttp import (
 )
 
 from min_library.models.logger.logger import ConsoleLoggerSingleton
-from settings.settings import (
+from user_data.settings.settings import (
     RETRY_COUNT,
     SLEEP_BETWEEN_ACCS_FROM,
     SLEEP_BETWEEN_ACCS_TO
