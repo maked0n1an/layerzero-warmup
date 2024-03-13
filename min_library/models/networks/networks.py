@@ -140,6 +140,18 @@ class Networks(metaclass=Singleton):
         explorer='https://optimistic.etherscan.io',
     )
     
+    Opbnb = Network(
+        name="op_bnb",
+        rpc=[
+            "https://opbnb.publicnode.com"
+        ],
+        chain_id=204,
+        tx_type=0,
+        coin_symbol=TokenSymbol.BNB,
+        decimals=18,
+        explorer="https://mainnet.opbnbscan.com"
+    )
+    
     Polygon = Network(
         name='polygon',
         rpc='https://rpc.ankr.com/polygon/',

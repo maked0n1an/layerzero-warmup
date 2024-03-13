@@ -1,4 +1,5 @@
 from web3.types import TxParams
+from min_library.models.contracts.contracts import TokenContractData
 from min_library.models.others.constants import LogStatus
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
@@ -41,7 +42,7 @@ class CoreDaoBridge(SwapTask):
 
         callParams = TxArgs(
             refundAddress=self.client.account_manager.account.address,
-            zroPaymentAddress='0x0000000000000000000000000000000000000000'
+            zroPaymentAddress=TokenContractData.ZERO_ADDRESS
         )
 
         args = TxArgs(
@@ -55,7 +56,7 @@ class CoreDaoBridge(SwapTask):
         value = await self._get_estimateBridgeFee(contract=contract)
 
         tx_params = TxParams(
-            to=src_bridge_data.bridge_contract.address,
+            to=contract.address,
             data=contract.encodeABI('bridge', args=args.get_tuple()),
             value=value.Wei
         )
@@ -66,31 +67,33 @@ class CoreDaoBridge(SwapTask):
         )
 
         if not swap_query.from_token.is_native_token:
-            await self.approve_interface(
+            hexed_tx_hash = await self.approve_interface(
                 token_contract=swap_query.from_token,
-                spender_address=src_bridge_data.bridge_contract.address,
+                spender_address=contract.address,
                 amount=swap_query.amount_from,
-                tx_params=tx_params,
-                is_approve_infinity=False
+                swap_info=swap_info,
+                tx_params=tx_params
             )
-            await sleep(3, 7)
+
+            if hexed_tx_hash:
+                self.client.account_manager.custom_logger.log_message(
+                    LogStatus.APPROVED,
+                    message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
+                )
+                await sleep(20, 50)
         else:
-            tx_params['value'] += swap_query.amount_from.Wei
+            tx_params['value'] = swap_query.amount_from.Wei
 
-        tx = await self.client.contract.transaction.sign_and_send(
-            tx_params=tx_params
-        )
-        receipt = await tx.wait_for_tx_receipt(
-            web3=self.client.account_manager.w3,
+        receipt_status, log_status, log_message = await self.perform_bridge(
+            swap_info, swap_query, tx_params, 
+            external_explorer='https://layerzeroscan.com'
+        ) 
+
+        self.client.account_manager.custom_logger.log_message(
+            status=log_status, message=log_message
         )
 
-        if receipt:
-            return (
-                f'{swap_query.amount_from.Ether} {swap_info.from_token} '
-                f'was sent from {self.client.account_manager.network.name.upper()} '
-                f'to {swap_info.to_network.upper()} via CoreDao: '
-                f'https://layerzeroscan.com/tx/{tx.hash.hex()} '
-            )
+        return receipt_status
 
     async def _get_estimateBridgeFee(
         self,

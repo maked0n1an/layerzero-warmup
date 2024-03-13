@@ -1,5 +1,6 @@
 from web3.types import TxParams
 
+from min_library.models.contracts.contracts import TokenContractData
 from min_library.models.others.constants import LogStatus
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
@@ -32,12 +33,12 @@ class TestnetBridge(SwapTask):
 
             return False
 
-        token_bridge_info = TestnetBridgeData.get_token_bridge_info(
+        src_bridge_data = TestnetBridgeData.get_token_bridge_info(
             network=self.client.account_manager.network.name,
             token_symbol=swap_info.from_token
         )
         contract = await self.client.contract.get(
-            contract=token_bridge_info.bridge_contract
+            contract=src_bridge_data.bridge_contract
         )
 
         swap_query = await self.compute_source_token_amount(
@@ -50,7 +51,7 @@ class TestnetBridge(SwapTask):
             _toAddress=self.client.account_manager.account.address,
             _amount=swap_query.amount_from.Wei,
             _refundAddress=self.client.account_manager.account.address,
-            _zroPaymentAddress='0x0000000000000000000000000000000000000000',
+            _zroPaymentAddress=TokenContractData.ZERO_ADDRESS,
             _adapterParams='0x'
         )
 
@@ -61,42 +62,38 @@ class TestnetBridge(SwapTask):
         )
 
         tx_params = TxParams(
-            to=token_bridge_info.bridge_contract.address,
+            to=contract.address,
             data=contract.encodeABI('sendFrom', args=args.get_tuple()),
             value=value.Wei
         )
-        tx_params = self.set_all_gas_params(
-            swap_info=swap_info,
-            tx_params=tx_params
-        )
-        
         if not swap_query.from_token.is_native_token:
-            await self.approve_interface(
+            hexed_tx_hash = await self.approve_interface(
                 token_contract=swap_query.from_token,
-                spender_address=token_bridge_info.bridge_contract.address,
+                spender_address=contract.address,
                 amount=swap_query.amount_from,
-                tx_params=tx_params,
-                is_approve_infinity=False
+                swap_info=swap_info,
+                tx_params=tx_params
             )
-            await sleep(10, 30)
+
+            if hexed_tx_hash:
+                self.client.account_manager.custom_logger.log_message(
+                    LogStatus.APPROVED,
+                    message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
+                )
+                await sleep(20, 50)
         else:
-            return f'Failed: can not approve'
-        
+            tx_params['value'] = swap_query.amount_from.Wei        
 
-        tx = await self.client.contract.transaction.sign_and_send(
-            tx_params=tx_params
-        )
-        receipt = await tx.wait_for_tx_receipt(
-            web3=self.client.account_manager.w3
+        receipt_status, log_status, log_message = await self.perform_bridge(
+            swap_info, swap_query, tx_params, 
+            external_explorer='https://layerzeroscan.com'
+        ) 
+
+        self.client.account_manager.custom_logger.log_message(
+            status=log_status, message=log_message
         )
 
-        if receipt:
-            return (
-                f'{swap_query.amount_from.Ether} {swap_info.from_token} '
-                f'was sent from {self.client.account_manager.network.name.upper()} '
-                f'to {swap_info.to_network.upper()} via {__class__.__name__}: '
-                f'https://layerzeroscan.com/tx/{tx.hash.hex()} '
-            )
+        return receipt_status
 
     async def _get_estimateSendFee(
         self,

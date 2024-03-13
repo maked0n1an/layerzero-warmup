@@ -35,7 +35,7 @@ class ContractsFactory:
                 raise ValueError("Network not supported")
 
 
-class TokenContractFetcher(metaclass=Singleton):
+class TokenContractData(metaclass=Singleton):
     NATIVE_ETH = NativeTokenContract(title=TokenSymbol.ETH)
 
     ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -68,12 +68,12 @@ class USDVContract:
     )
 
 
-class EthereumTokenContracts(TokenContractFetcher):
-    ETH = TokenContractFetcher.NATIVE_ETH
+class EthereumTokenContracts(TokenContractData):
+    ETH = TokenContractData.NATIVE_ETH
 
 
-class ArbitrumTokenContracts(TokenContractFetcher, USDVContract):
-    ETH = TokenContractFetcher.NATIVE_ETH
+class ArbitrumTokenContracts(TokenContractData, USDVContract):
+    ETH = TokenContractData.NATIVE_ETH
 
     ARB = TokenContract(
         title=TokenSymbol.ARB,
@@ -122,7 +122,7 @@ class ArbitrumTokenContracts(TokenContractFetcher, USDVContract):
     )
 
 
-class AvalancheTokenContracts(TokenContractFetcher, USDVContract):
+class AvalancheTokenContracts(TokenContractData, USDVContract):
     AVAX = NativeTokenContract(title=TokenSymbol.AVAX)
 
     ETH = TokenContract(
@@ -152,7 +152,7 @@ class AvalancheTokenContracts(TokenContractFetcher, USDVContract):
     )
 
 
-class BscTokenContracts(TokenContractFetcher, USDVContract):
+class BscTokenContracts(TokenContractData, USDVContract):
     BNB = NativeTokenContract(title=TokenSymbol.BNB)
 
     USDT = TokenContract(
@@ -171,7 +171,7 @@ class BscTokenContracts(TokenContractFetcher, USDVContract):
     )
 
 
-class FantomTokenContracts(TokenContractFetcher):
+class FantomTokenContracts(TokenContractData):
     USDC = TokenContract(
         title=TokenSymbol.USDC,
         address='0x04068DA6C83AFCFA0e13ba15A6696662335D5B75',
@@ -192,8 +192,8 @@ class FantomTokenContracts(TokenContractFetcher):
 #     )
 
 
-class OptimismTokenContracts(TokenContractFetcher, USDVContract):
-    ETH = TokenContractFetcher.NATIVE_ETH
+class OptimismTokenContracts(TokenContractData, USDVContract):
+    ETH = TokenContractData.NATIVE_ETH
 
     USDC = TokenContract(
         title=TokenSymbol.USDC,
@@ -218,7 +218,7 @@ class OptimismTokenContracts(TokenContractFetcher, USDVContract):
     )
 
 
-class PolygonTokenContracts(TokenContractFetcher, USDVContract):
+class PolygonTokenContracts(TokenContractData, USDVContract):
     MATIC = NativeTokenContract(title=TokenSymbol.MATIC)
 
     USDC = TokenContract(

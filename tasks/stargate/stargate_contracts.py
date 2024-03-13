@@ -14,6 +14,10 @@ class StargateContracts:
     STARGATE_STG_ABI = read_json(
         path=('data', 'abis', 'layerzero', 'stargate', 'stg_abi.json')
     )
+    
+    STARGATE_USDV_ABI = read_json(
+        path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+    )
 
     ARBITRUM_UNIVERSAL = RawContract(
         title='Stargate Finance: Router (Arbitrum USDC)',
@@ -49,6 +53,12 @@ class StargateContracts:
         title='Stargate Finance (Avalanche STG)',
         address='0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
         abi=STARGATE_STG_ABI
+    )
+    
+    AVALANCHE_USDV = RawContract(
+        title='USDV on AVAX-C',
+        address='0x292dD933180412923ee47fA73bBF407B6d776B4C',
+        abi=STARGATE_USDV_ABI
     )
 
     BSC_USDT = RawContract(

@@ -5,7 +5,7 @@ from typing import (
 # Do you want to use wallet names or generate ID's by program?
 #   Use own names: True
 #   Generate IDs: False
-IS_ACCOUNT_NAMES = True
+IS_ACCOUNT_NAMES = False
 
 # Do you want to shuffle wallets?
 IS_SHUFFLE_WALLETS = True

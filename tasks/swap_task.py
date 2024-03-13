@@ -1,11 +1,16 @@
 import asyncio
 import aiohttp
 
-from web3.types import TxParams
+from eth_typing import HexStr
+from web3.types import (
+    TxParams,
+    TxReceipt,
+    _Hash32,
+)
 
 from min_library.models.client import Client
 from min_library.models.contracts.contracts import ContractsFactory
-from min_library.models.others.constants import TokenSymbol
+from min_library.models.others.constants import LogStatus, TokenSymbol
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
 from min_library.models.swap.swap_info import SwapInfo
@@ -99,6 +104,7 @@ class SwapTask:
 
     async def approve_interface(
         self,
+        swap_info: SwapInfo,
         token_contract: ParamsTypes.TokenContract,
         spender_address: ParamsTypes.Address,
         amount: ParamsTypes.Amount | None = None,
@@ -150,6 +156,11 @@ class SwapTask:
 
         if amount.Wei <= approved.Wei:
             return True
+        
+        tx_params = self.set_all_gas_params(
+            swap_info=swap_info,
+            tx_params=tx_params
+        )
 
         tx = await self.client.contract.approve(
             token_contract=token_contract,
@@ -301,8 +312,15 @@ class SwapTask:
         if second_token.startswith('W'):
             second_token = second_token[1:]
 
-        if first_token == TokenSymbol.USDT:
-            return 1
+        match first_token:
+            case TokenSymbol.USDT:
+                return 1
+            case TokenSymbol.USDC:
+                return 1
+            case TokenSymbol.USDV:
+                return 1
+            case TokenSymbol.USDC_E:
+                return 1
 
         async with aiohttp.ClientSession() as session:
             price = await self._get_price_from_binance(session, first_token, second_token)
@@ -317,6 +335,59 @@ class SwapTask:
         print('name:', await contract.functions.name().call())
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
+
+    async def perform_bridge(
+        self,
+        swap_info: SwapInfo,
+        swap_query: SwapQuery,
+        tx_params: TxParams | dict,
+        external_explorer: str = None
+    ) -> tuple[int, str, str]:
+        """
+        Perform a bridge operation.
+
+        Args:
+            swap_info (SwapInfo): Information about the swap.
+            swap_query (SwapQuery): Query parameters for the swap.
+            tx_params (TxParams | dict): Transaction parameters.
+            external_explorer (str, optional): External explorer URL. Defaults to None.
+
+        Returns:
+            tuple[str, str]: A tuple containing:
+                - A boolean indicating whether the bridge operation was successful.
+                - Status of the bridge operation.
+                - Message regarding the bridge operation.
+        """
+        tx_params = self.set_all_gas_params(
+            swap_info=swap_info,
+            tx_params=tx_params
+        )
+
+        tx_hash, receipt = await self._perform_tx(tx_params)
+
+        account_network = self.client.account_manager.network
+
+        if external_explorer:
+            full_path = external_explorer + account_network.TxPath
+        else:
+            full_path = account_network.explorer + account_network.TxPath
+
+        rounded_amount = round(swap_query.amount_from.Ether, 5)
+
+        if receipt['status']:
+            status = LogStatus.BRIDGED
+            message = f'{rounded_amount} {swap_info.from_token}'
+        else:
+            status = LogStatus.ERROR
+            message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
+
+        message += (
+            f' from {account_network.name.upper()} -> '
+            f'{swap_info.to_network.upper()}: '
+            f'{full_path + tx_hash.hex()}'
+        )
+
+        return receipt['status'], status, message
 
     async def _get_price_from_binance(
         self,
@@ -338,3 +409,29 @@ class SwapTask:
                 await asyncio.sleep(3)
         raise ValueError(
             f'Can not get {first_token}{second_token} price from Binance')
+
+    async def _perform_tx(
+        self,
+        tx_params: TxParams | dict
+    ) -> tuple[_Hash32, TxReceipt]:
+        """
+        Perform a token swap operation.
+
+        Args:
+            swap_info (SwapInfo): Information about the swap.
+            tx_params (TxParams | dict): Transaction parameters.
+
+        Returns:
+            tuple[_Hash32, TxReceipt].
+            - A tuple containing:
+                - The hash of the transaction.
+                - The receipt of the transaction.
+        """
+        tx = await self.client.contract.transaction.sign_and_send(
+            tx_params=tx_params
+        )
+        receipt = await tx.wait_for_tx_receipt(
+            web3=self.client.account_manager.w3
+        )
+
+        return tx.hash, receipt
