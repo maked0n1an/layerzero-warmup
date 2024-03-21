@@ -171,7 +171,7 @@ class Stargate(SwapTask):
             address = self.client.account_manager.account.address
             swap_query = await self.compute_min_destination_amount(
                 swap_query=swap_query,
-                to_token_price=1,
+                min_to_amount=1,
                 swap_info=swap_info
             )
 

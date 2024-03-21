@@ -102,7 +102,7 @@ class WooFi(SwapTask):
             token_symbol=swap_info.to_token
         )
 
-        price_of_to_token = await contract.functions.tryQuerySwap(
+        min_to_amount = await contract.functions.tryQuerySwap(
             swap_query.from_token.address,
             to_token.address,
             swap_query.amount_from.Wei
@@ -110,6 +110,6 @@ class WooFi(SwapTask):
 
         return await self.compute_min_destination_amount(
             swap_query=swap_query,
-            to_token_price=price_of_to_token,
+            min_to_amount=min_to_amount,
             swap_info=swap_info
         )
