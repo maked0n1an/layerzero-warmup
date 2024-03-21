@@ -222,6 +222,7 @@ class Stargate(SwapTask):
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
+            return data, value
 
         else:
             lz_tx_params = TxArgs(
@@ -249,12 +250,12 @@ class Stargate(SwapTask):
 
             data = contract.encodeABI('swap', args=tx_args.get_tuple())
 
-            value = await self._quote_layer_zero_fee(
-                router_contract=contract,
-                src_token_symbol=swap_info.from_token,
-                dst_chain_id=dst_chain_id,
-                lz_tx_params=lz_tx_params,
-            )
+        value = await self._quote_layer_zero_fee(
+            router_contract=contract,
+            dst_chain_id=dst_chain_id,
+            lz_tx_params=lz_tx_params,
+            src_token_symbol=swap_info.from_token,
+        )
 
         return data, value
 
