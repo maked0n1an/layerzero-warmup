@@ -14,15 +14,20 @@ class StargateContracts:
     STARGATE_STG_ABI = read_json(
         path=('data', 'abis', 'layerzero', 'stargate', 'stg_abi.json')
     )
-    
+
     STARGATE_BRIDGE_RECOLOR = read_json(
         path=('data', 'abis', 'layerzero', 'stargate', 'bridge_recolor.json')
     )
-    STARGATE_OTUP = read_json(
-        path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
-    )    
     STARGATE_MESSAGING_V1_ABI = read_json(
         path=('data', 'abis', 'layerzero', 'stargate', 'msg_abi.json')
+    )
+
+    USDV = RawContract(
+        title='OptimizedTransparentUpgradeableProxy',
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
     )
 
     ARBITRUM_UNIVERSAL = RawContract(
@@ -54,18 +59,20 @@ class StargateContracts:
         address='0x45A01E4e04F14f7A4a6702c74187c5F6222033cd',
         abi=STARGATE_ROUTER_ABI
     )
-    
+
     AVALANCHE_STG = RawContract(
         title='Stargate Finance (Avalanche STG)',
         address='0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
         abi=STARGATE_STG_ABI
     )
-    
+
     AVALANCHE_USDV_BRIDGE_RECOLOR = RawContract(
         title='BridgeRecolor (AVAX-C)',
         address='0x292dD933180412923ee47fA73bBF407B6d776B4C',
         abi=STARGATE_BRIDGE_RECOLOR
     )
+
+    AVALANCHE_USDV = USDV
 
     BSC_USDT = RawContract(
         title='Stargate Finance: Router (BSC USDT)',
@@ -84,6 +91,14 @@ class StargateContracts:
         address='0xB0D502E938ed5f4df2E681fE6E419ff29631d62b',
         abi=STARGATE_STG_ABI
     )
+
+    BSC_USDV_BRIDGE_RECOLOR = RawContract(
+        title='BridgeRecolor (BSC)',
+        address='0x5B1d0467BED2e8Bd67c16cE8bCB22a195ae76870',
+        abi=STARGATE_BRIDGE_RECOLOR
+    )
+
+    BSC_USDV = USDV
 
     FANTOM_USDC = RawContract(
         title='Stargate Finance: Router (Fantom USDC)',
@@ -118,8 +133,5 @@ class StargateContracts:
         address='0xAb43a615526e3e15B63e5812f74a0A1B86E9965E',
         abi=STARGATE_BRIDGE_RECOLOR
     )
-    POLYGON_USDV_TO_USDV = RawContract(
-        title='OptimizedTransparentUpgradeableProxy (Polygon)',
-        address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=STARGATE_OTUP
-    )
+
+    POLYGON_USDV = USDV

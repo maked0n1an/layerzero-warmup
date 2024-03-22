@@ -1,5 +1,6 @@
 from min_library.models.bridges.bridge_data import TokenBridgeInfo
 from min_library.models.bridges.network_data import NetworkData
+from min_library.models.contracts.contracts import ContractsFactory
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import TokenSymbol
 from min_library.models.bridges.network_data_fetcher import NetworkDataFetcher
@@ -7,6 +8,10 @@ from tasks.stargate.stargate_contracts import StargateContracts
 
 
 class StargateData(NetworkDataFetcher):
+    SPECIAL_COINS = [
+        TokenSymbol.USDV
+    ]
+    
     networks_data = {
         Networks.Arbitrum.name: NetworkData(
             chain_id=110,
@@ -45,9 +50,15 @@ class StargateData(NetworkDataFetcher):
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.AVALANCHE_STG
+                ),                
+                TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR,
                 ),
-                TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR
+                TokenSymbol.USDC + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.AVALANCHE_USDV
                 )
             }
         ),
@@ -64,7 +75,13 @@ class StargateData(NetworkDataFetcher):
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.BSC_STG
-                )
+                ),
+                TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.BSC_USDV_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.BSC_USDV
+                ),
             }
         ),
         Networks.Fantom.name: NetworkData(
@@ -111,8 +128,14 @@ class StargateData(NetworkDataFetcher):
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.POLYGON_STG
                 ),
-                TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR
+                TokenSymbol.USDC + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.POLYGON_USDV
                 )
             }
         )
