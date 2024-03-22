@@ -110,7 +110,7 @@ class SwapTask:
         amount: ParamsTypes.Amount | None = None,
         tx_params: TxParams | dict | None = None,
         is_approve_infinity: bool = None
-    ) -> bool:
+    ) -> str | bool:
         """
         Approve spending of a specific amount by a spender on behalf of the owner.
 
@@ -162,19 +162,15 @@ class SwapTask:
             tx_params=tx_params
         )
 
-        tx = await self.client.contract.approve(
+        tx_hash = await self.client.contract.approve(
             token_contract=token_contract,
             spender_address=spender_address,
             amount=amount,
             tx_params=tx_params,
             is_approve_infinity=is_approve_infinity
         )
-        await tx.wait_for_tx_receipt(
-            web3=self.client.account_manager.w3,
-            timeout=240
-        )
 
-        return False
+        return tx_hash
 
     async def compute_source_token_amount(
         self,
@@ -247,7 +243,7 @@ class SwapTask:
     async def compute_min_destination_amount(
         self,
         swap_query: SwapQuery,
-        min_to_amount: float,
+        min_to_amount: int,
         swap_info: SwapInfo
     ) -> SwapQuery:
         """
@@ -382,8 +378,7 @@ class SwapTask:
             message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
 
         message += (
-            f' from {account_network.name.upper()} -> '
-            f'{swap_info.to_network.upper()}: '
+            f'to {swap_info.to_network.upper()}: '
             f'{full_path + tx_hash.hex()}'
         )
 
