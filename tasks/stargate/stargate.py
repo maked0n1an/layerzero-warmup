@@ -170,7 +170,7 @@ class Stargate(SwapTask):
         contract: ParamsTypes.Contract,
         src_pool_id: int | None,
         dst_fee: TokenAmount | None = None
-    ) -> Tuple[str, TokenAmount, float]:
+    ) -> Tuple[str, TokenAmount]:
         dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
             network=swap_info.to_network,
             token_symbol=swap_info.to_token
@@ -242,8 +242,9 @@ class Stargate(SwapTask):
                 dst_chain_id=dst_chain_id,
                 lz_tx_params=lz_tx_params,
                 src_token_symbol=swap_info.from_token,
-            )            
-            value = int(fee.Wei * multiplier)
+            )           
+            fee.Wei = int(fee.Wei * multiplier)
+            value = fee
             
             return data, value
 
@@ -305,9 +306,9 @@ class Stargate(SwapTask):
 
             data = bridge_recolor_to_usdv_contract.encodeABI(
                 'swapRecolorSend', args=tx_args.get_tuple()
-            )
-                        
-            value = int(fee.Wei * multiplier)
+            )                        
+            fee.Wei = int(fee.Wei * multiplier)
+            value = fee
 
             return data, value
 
@@ -337,7 +338,8 @@ class Stargate(SwapTask):
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
-            value = int(fee.Wei * multiplier)
+            fee.Wei = int(fee.Wei * multiplier)
+            value = fee
             
             return data, value
 
@@ -374,7 +376,8 @@ class Stargate(SwapTask):
             lz_tx_params=lz_tx_params,
             src_token_symbol=swap_info.from_token,
         )
-        value = int(fee.Wei * multiplier)
+        fee.Wei = int(fee.Wei * multiplier)
+        value = fee
 
         return data, value
 
