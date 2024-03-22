@@ -96,6 +96,14 @@ class ArbitrumTokenContracts(TokenContractData):
         address='0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
         decimals=6
     )
+    
+    USDV = TokenContract(
+        title='OptimizedTransparentUpgradeableProxy',
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
+    )
 
     DAI = TokenContract(
         title=TokenSymbol.DAI,
@@ -133,6 +141,14 @@ class AvalancheTokenContracts(TokenContractData):
         title=TokenSymbol.USDT,
         address='0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
     )
+    
+    USDV = TokenContract(
+        title='OptimizedTransparentUpgradeableProxy',
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
+    )
 
     FRAX = TokenContract(
         title=TokenSymbol.FRAX,
@@ -161,6 +177,14 @@ class BscTokenContracts(TokenContractData):
     STG = TokenContract(
         title=TokenSymbol.STG,
         address='0xb0d502e938ed5f4df2e681fe6e419ff29631d62b',
+    )
+    
+    USDV = TokenContract(
+        title='OptimizedTransparentUpgradeableProxy',
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
     )
 
 
@@ -230,6 +254,14 @@ class PolygonTokenContracts(TokenContractData):
         title=TokenSymbol.USDT,
         address='0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
         decimals=6
+    )
+    
+    USDV = TokenContract(
+        title='OptimizedTransparentUpgradeableProxy',
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
     )
 
     DAI = TokenContract(

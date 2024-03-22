@@ -1,4 +1,7 @@
+from min_library.models.contracts.contracts import ContractsFactory
 from min_library.models.contracts.raw_contract import RawContract
+from min_library.models.networks.networks import Networks
+from min_library.models.others.constants import TokenSymbol
 from min_library.utils.helpers import read_json
 
 
@@ -20,14 +23,6 @@ class StargateContracts:
     )
     STARGATE_MESSAGING_V1_ABI = read_json(
         path=('data', 'abis', 'layerzero', 'stargate', 'msg_abi.json')
-    )
-
-    USDV = RawContract(
-        title='OptimizedTransparentUpgradeableProxy',
-        address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
-        )
     )
 
     ARBITRUM_UNIVERSAL = RawContract(
@@ -72,7 +67,10 @@ class StargateContracts:
         abi=STARGATE_BRIDGE_RECOLOR
     )
 
-    AVALANCHE_USDV = USDV
+    AVALANCHE_USDV = ContractsFactory.get_contract(
+        network_name=Networks.Avalanche.name,
+        token_symbol=TokenSymbol.USDV
+    )
 
     BSC_USDT = RawContract(
         title='Stargate Finance: Router (BSC USDT)',
@@ -98,7 +96,10 @@ class StargateContracts:
         abi=STARGATE_BRIDGE_RECOLOR
     )
 
-    BSC_USDV = USDV
+    BSC_USDV = ContractsFactory.get_contract(
+        network_name=Networks.BSC.name,
+        token_symbol=TokenSymbol.USDV
+    )
 
     FANTOM_USDC = RawContract(
         title='Stargate Finance: Router (Fantom USDC)',
@@ -134,4 +135,7 @@ class StargateContracts:
         abi=STARGATE_BRIDGE_RECOLOR
     )
 
-    POLYGON_USDV = USDV
+    POLYGON_USDV = ContractsFactory.get_contract(
+        network_name=Networks.Polygon.name,
+        token_symbol=TokenSymbol.USDV
+    )
