@@ -35,12 +35,12 @@ class NetworkDataFetcher:
     @classmethod
     def get_chain_id_and_pool_id(
         cls,
-        network: str,
+        network_name: str,
         token_symbol: str
     ) -> Tuple[int, Optional[int]]:
         token_symbol = token_symbol.upper()
 
-        network_data = cls.get_network_data(network_name=network)
+        network_data = cls.get_network_data(network_name=network_name)
 
         cls._check_for_bridge_contract(
             cls=cls, token=token_symbol, bridge_dict=network_data.bridge_dict
