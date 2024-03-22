@@ -61,18 +61,11 @@ class TokenContractData(metaclass=Singleton):
         return getattr(cls, contract_name)
 
 
-class USDVContract:
-    USDV = TokenContract(
-        title=TokenSymbol.USDV,
-        address='0x323665443CEf804A3b5206103304BD4872EA4253',
-    )
-
-
 class EthereumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
 
 
-class ArbitrumTokenContracts(TokenContractData, USDVContract):
+class ArbitrumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
 
     ARB = TokenContract(
@@ -122,7 +115,7 @@ class ArbitrumTokenContracts(TokenContractData, USDVContract):
     )
 
 
-class AvalancheTokenContracts(TokenContractData, USDVContract):
+class AvalancheTokenContracts(TokenContractData):
     AVAX = NativeTokenContract(title=TokenSymbol.AVAX)
 
     ETH = TokenContract(
@@ -152,7 +145,7 @@ class AvalancheTokenContracts(TokenContractData, USDVContract):
     )
 
 
-class BscTokenContracts(TokenContractData, USDVContract):
+class BscTokenContracts(TokenContractData):
     BNB = NativeTokenContract(title=TokenSymbol.BNB)
 
     USDT = TokenContract(
@@ -192,7 +185,7 @@ class FantomTokenContracts(TokenContractData):
 #     )
 
 
-class OptimismTokenContracts(TokenContractData, USDVContract):
+class OptimismTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
 
     USDC = TokenContract(
@@ -218,7 +211,7 @@ class OptimismTokenContracts(TokenContractData, USDVContract):
     )
 
 
-class PolygonTokenContracts(TokenContractData, USDVContract):
+class PolygonTokenContracts(TokenContractData):
     MATIC = NativeTokenContract(title=TokenSymbol.MATIC)
 
     USDC = TokenContract(

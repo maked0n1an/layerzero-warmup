@@ -172,11 +172,18 @@ class Stargate(SwapTask):
         router_contract: ParamsTypes.Contract,
         src_pool_id: int | None,
         dst_fee: TokenAmount | None = None
-    ) -> Tuple[str, TokenAmount]:
-        dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
-            network_name=swap_info.to_network,
-            token_symbol=swap_info.to_token
-        )
+    ) -> Tuple[str, TokenAmount]:  
+        if swap_info.to_token in StargateData.SPECIAL_COINS:
+            full_path = swap_info.from_token + swap_info.to_token
+            dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
+                network_name=swap_info.to_network,
+                token_symbol=full_path
+            )
+        else:            
+            dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
+                network_name=swap_info.to_network,
+                token_symbol=swap_info.to_token
+            )
         address = self.client.account_manager.account.address
         multiplier = 1.0
 
