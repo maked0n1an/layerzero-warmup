@@ -67,7 +67,7 @@ class Contract:
         amount: ParamsTypes.Amount | None = None,
         tx_params: TxParams | dict | None = None,
         is_approve_infinity: bool = False
-    ) -> Tx:
+    ) -> str | bool:
         """
         Approve a spender to spend a certain amount of tokens on behalf of the user.
 
@@ -105,11 +105,12 @@ class Contract:
         else:
             token_amount = amount.Wei
 
-        data = token_contract.encodeABI('approve',
-                                        args=TxArgs(
-                                            spender=spender_address,
-                                            amount=token_amount
-                                        ).get_tuple())
+        data = token_contract.encodeABI(
+            'approve',
+            args=TxArgs(
+                spender=spender_address,
+                amount=token_amount
+            ).get_tuple())
 
         if tx_params:
             new_tx_params = {}
@@ -128,15 +129,14 @@ class Contract:
             'to': token_contract.address,
             'data': data
         })
-
+        
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
-        print(
-            'Approved: ',
-            self.account_manager.network.explorer
-            + self.account_manager.network.TxPath
-            + tx.hash.hex()
+        receipt = await tx.wait_for_tx_receipt(
+            web3=self.account_manager.w3,
+            timeout=240
         )
-        return tx
+        
+        return tx.hash.hex() if receipt['status'] else False
 
     async def get(
         self,
