@@ -16,7 +16,7 @@ class NetworkDataFetcher:
         cls,
         network: str
     ) -> int | None:
-        network_data = cls.get_network_data(network=network)
+        network_data = cls.get_network_data(network_name=network)
 
         return network_data.chain_id
 
@@ -27,7 +27,7 @@ class NetworkDataFetcher:
         token_symbol: str
     ) -> int | None:
         token_bridge_info = cls.get_token_bridge_info(
-            network=network, token_symbol=token_symbol
+            network_name=network, token_symbol=token_symbol
         )
 
         return token_bridge_info.pool_id
@@ -40,7 +40,7 @@ class NetworkDataFetcher:
     ) -> Tuple[int, Optional[int]]:
         token_symbol = token_symbol.upper()
 
-        network_data = cls.get_network_data(network=network)
+        network_data = cls.get_network_data(network_name=network)
 
         cls._check_for_bridge_contract(
             cls=cls, token=token_symbol, bridge_dict=network_data.bridge_dict
@@ -54,12 +54,12 @@ class NetworkDataFetcher:
     @classmethod
     def get_token_bridge_info(
         cls,
-        network: str,
+        network_name: str,
         token_symbol: str
     ) -> TokenBridgeInfo:
         token_symbol = token_symbol.upper()
 
-        network_data = cls.get_network_data(network=network)
+        network_data = cls.get_network_data(network_name=network_name)
 
         cls._check_for_bridge_contract(
             cls=cls, token=token_symbol, bridge_dict=network_data.bridge_dict
@@ -71,18 +71,18 @@ class NetworkDataFetcher:
     @classmethod
     def get_network_data(
         cls,
-        network: str
+        network_name: str
     ) -> NetworkData:
-        network = network.lower()
+        network_name = network_name.lower()
         networks_data = cls.networks_data
 
-        if network not in networks_data:
+        if network_name not in networks_data:
             raise exceptions.NetworkNotAdded(
-                f"The '{network.capitalize()}' network has not been "
+                f"The '{network_name.capitalize()}' network has not been "
                 f"added to {cls.__name__} networks dict"
             )
 
-        network_data = networks_data[network]
+        network_data = networks_data[network_name]
 
         return network_data
 
