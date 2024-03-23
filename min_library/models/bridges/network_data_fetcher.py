@@ -14,20 +14,20 @@ class NetworkDataFetcher:
     @classmethod
     def get_chain_id(
         cls,
-        network: str
+        network_name: str
     ) -> int | None:
-        network_data = cls.get_network_data(network_name=network)
+        network_data = cls.get_network_data(network_name=network_name)
 
         return network_data.chain_id
 
     @classmethod
     def get_pool_id(
         cls,
-        network: str,
+        network_name: str,
         token_symbol: str
     ) -> int | None:
         token_bridge_info = cls.get_token_bridge_info(
-            network_name=network, token_symbol=token_symbol
+            network_name=network_name, token_symbol=token_symbol
         )
 
         return token_bridge_info.pool_id
