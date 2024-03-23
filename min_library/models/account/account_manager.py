@@ -92,3 +92,15 @@ class AccountManager:
         else:
             self.account = self.w3.eth.account.create(
                 extra_entropy=str(random.randint(1, 999_999_999)))
+            
+
+class AccountInfo:
+    def __init__(
+        self,
+        account_id: str | int,
+        private_key: str,
+        proxy: str | None = None
+    ) -> None:
+        self.account_id = account_id
+        self.private_key = private_key
+        self.proxy = proxy
