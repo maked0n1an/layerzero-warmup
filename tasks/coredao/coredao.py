@@ -1,5 +1,7 @@
+import random
 from web3.types import TxParams
 from min_library.models.contracts.contracts import TokenContractData
+from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
@@ -83,17 +85,39 @@ class CoreDaoBridge(SwapTask):
                 await sleep(20, 50)
         else:
             tx_params['value'] = swap_query.amount_from.Wei
+            
+        try:
+            receipt_status, log_status, log_message = await self.perform_bridge(
+                swap_info, swap_query, tx_params,
+                external_explorer='https://layerzeroscan.com'
+            )
 
-        receipt_status, log_status, log_message = await self.perform_bridge(
-            swap_info, swap_query, tx_params, 
-            external_explorer='https://layerzeroscan.com'
-        ) 
+            self.client.account_manager.custom_logger.log_message(
+                status=log_status, message=log_message
+            )
+        except Exception as e:
+            error = str(e)
+            if 'insufficient funds for gas + value' in error:
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.ERROR, message='Insufficient funds for gas + value'
+                )
+            else:
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.ERROR, message=error
+                )
 
-        self.client.account_manager.custom_logger.log_message(
-            status=log_status, message=log_message
-        )
+        wait_time = self.get_wait_time()
 
-        return receipt_status
+        return wait_time if receipt_status else False
+    
+    def get_wait_time(self) -> int:
+        match self.client.account_manager.network.name:
+            case Networks.BSC.name:
+                wait_time = (0.9 * 60, 2 * 60)
+            case Networks.Core.name:
+                wait_time = (0.4 * 60, 1.5 * 60)
+
+        return random.randint(int(wait_time[0]), int(wait_time[1]))
 
     async def _get_estimateBridgeFee(
         self,
