@@ -1,26 +1,50 @@
-import random
+from min_library.models.account.account_manager import AccountInfo
 from min_library.models.client import Client
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus, TokenSymbol
 from min_library.models.swap.swap_info import SwapInfo
+from tasks.pancake_swap.pancake_swap import PancakeSwap
 from user_data.settings.settings import (
-    IS_SLEEP,
-    SLEEP_BETWEEN_BRIDGES_ON_ONE_ACCOUNT_FROM,
-    SLEEP_BETWEEN_BRIDGES_ON_ONE_ACCOUNT_TO,
+    IS_SLEEP
 )
 from tasks.coredao.coredao import CoreDaoBridge
 from tasks.stargate.stargate import Stargate
 from tasks.testnet_bridge.testnet_bridge import TestnetBridge
 
 
-async def bridge_stargate(account_id, private_key) -> bool:
-    client = Client(
-        account_id=account_id,
-        private_key=private_key,
-        network=Networks.BSC
+async def bridge_stargate(
+    account_info: AccountInfo,
+    module_info: SwapInfo | None = None
+) -> int:
+    swap_info = SwapInfo(
+        from_token=TokenSymbol.USDT,
+        to_token=TokenSymbol.USDT,
+        to_network=Networks.Polygon
     )
+
+    client = Client(
+        account_id=account_info.account_id if account_info else "",
+        private_key=account_info.private_key if account_info else "",
+        proxy=account_info.proxy if account_info else "",
+        network=module_info.from_network if module_info else Networks.BSC
+    )
+
     stargate = Stargate(client=client)
-    
+
+    if module_info:
+        swap_info = SwapInfo(
+            from_token=module_info.from_token,
+            to_token=module_info.to_token,
+            to_network=module_info.to_network
+        )
+
+    client.account_manager.custom_logger.log_message(
+        LogStatus.INFO, f'Started Stargate'
+    )
+
+    wait_time = await stargate.crosschain_swap(swap_info)
+    return wait_time
+
     swap_info = SwapInfo(
         from_token=TokenSymbol.USDT,
         to_token=TokenSymbol.USDT,

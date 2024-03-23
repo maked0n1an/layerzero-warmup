@@ -20,7 +20,7 @@ from tasks.swap_task import SwapTask
 
 
 class Stargate(SwapTask):
-    async def swap(
+    async def crosschain_swap(
         self,
         swap_info: SwapInfo,
         max_fee: float = 0.7,
