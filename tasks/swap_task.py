@@ -156,7 +156,7 @@ class SwapTask:
 
         if amount.Wei <= approved.Wei:
             return True
-        
+
         tx_params = self.set_all_gas_params(
             swap_info=swap_info,
             tx_params=tx_params
@@ -378,7 +378,7 @@ class SwapTask:
             message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
 
         message += (
-            f' to {swap_info.to_network.upper()}: '
+            f' to {swap_info.to_network.upper()} in {swap_info.to_token}: '
             f'{full_path + tx_hash.hex()}'
         )
 
@@ -404,6 +404,50 @@ class SwapTask:
                 await asyncio.sleep(3)
         raise ValueError(
             f'Can not get {first_token}{second_token} price from Binance')
+
+    async def perform_swap(
+        self,
+        swap_info: SwapInfo,
+        swap_query: SwapQuery,
+        tx_params: TxParams | dict,
+    ) -> tuple[int, str, str]:
+        """
+        Perform a token swap operation.
+        Args:
+            swap_info (SwapInfo): Information about the swap.
+            swap_query (SwapQuery): Query parameters for the swap.
+            tx_params (TxParams | dict): Transaction parameters.
+        Returns:
+            tuple[bool, str, str]: A tuple containing:
+                - A boolean indicating whether the swap was successful.
+                - Status of the swap.
+                - Message regarding the swap.
+        """
+        tx_params = self.set_all_gas_params(
+            swap_info=swap_info,
+            tx_params=tx_params
+        )
+
+        tx_hash, receipt = await self._perform_tx(tx_params)
+
+        account_network = self.client.account_manager.network
+        full_path = account_network.explorer + account_network.TxPath
+        rounded_amount = round(swap_query.amount_from.Ether, 5)
+
+        if receipt['status']:
+            log_status = LogStatus.SWAPPED
+            message = f'{rounded_amount} {swap_info.from_token}'
+
+        else:
+            log_status = LogStatus.ERROR
+            message = f'Failed swap {rounded_amount} {swap_info.from_token}'
+
+        message += (
+            f' -> {swap_query.min_to_amount.Ether} {swap_info.to_token}: '
+            f'{full_path + tx_hash.hex()}'
+        )
+
+        return receipt['status'], log_status, message
 
     async def _perform_tx(
         self,
