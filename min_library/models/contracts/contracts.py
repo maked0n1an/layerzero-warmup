@@ -13,7 +13,7 @@ class ContractsFactory:
     @staticmethod
     def get_contract(network_name: str, token_symbol: str):
         match(network_name):
-            case Networks.Arbitrum.name:
+            case Networks.Ethereum.name:
                 return EthereumTokenContracts.get_token(token_symbol)
             case Networks.Arbitrum.name:
                 return ArbitrumTokenContracts.get_token(token_symbol)
