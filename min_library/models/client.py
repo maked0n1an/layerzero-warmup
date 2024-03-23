@@ -28,15 +28,12 @@ class Client:
 
         self.contract = Contract(self.account_manager)
         
-    async def initial_delay(
+    async def step_delay(
         self,
-        sleep_from:int = 10, 
-        sleep_to :int = 30,
+        sleep_time: int,
         message: str = 'before next step'
     ) -> None:
-        delay = random.randint(sleep_from, sleep_to)
-        
         self.account_manager.custom_logger.log_message(
-            "INFO", f"Sleeping {delay} secs {message}"
+            "INFO", f"Sleeping {sleep_time} secs {message}"
         )
-        await asyncio.sleep(delay)
+        await asyncio.sleep(sleep_time)
