@@ -378,7 +378,7 @@ class SwapTask:
             message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
 
         message += (
-            f' to {swap_info.to_network.upper()} in {swap_info.to_token}: '
+            f' to {swap_info.to_network.name.upper()} in {swap_info.to_token}: '
             f'{full_path + tx_hash.hex()}'
         )
 

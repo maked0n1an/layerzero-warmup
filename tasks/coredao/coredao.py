@@ -18,7 +18,7 @@ class CoreDaoBridge(SwapTask):
     ) -> str:
         check_message = self.validate_swap_inputs(
             first_arg=self.client.account_manager.network.name,
-            second_arg=swap_info.to_network,
+            second_arg=swap_info.to_network.name,
             param_type='networks'
         )
         if check_message:

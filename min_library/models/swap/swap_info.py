@@ -1,5 +1,7 @@
 import random
 
+from min_library.models.networks.network import Network
+
 
 class SwapInfo:
     def __init__(
@@ -7,8 +9,8 @@ class SwapInfo:
         from_token: str,
         to_token: str,
         slippage: float = 0.5,
-        from_network: str | None = None,
-        to_network: str | None = None,
+        from_network: Network | None = None,
+        to_network: Network | None = None,
         amount: float | None = None,
         amount_from: float | None = None,
         amount_to: float | None = None,
@@ -62,8 +64,8 @@ class SwapInfo:
         return random_amount
 
     def _get_random_amount_by_percent(
-        self, 
-        min_percent: int, 
+        self,
+        min_percent: int,
         max_percent: int,
         decimals: int
     ):
