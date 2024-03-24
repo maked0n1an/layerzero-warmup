@@ -25,6 +25,7 @@ class TokenSymbol(metaclass=Singleton):
     USDC_E = 'USDC_E'
     USDV = 'USDV'
     WBTC = 'WBTC'
+    WCORE = 'WCORE'
     WETH = 'WETH'
     XDAI = 'xDAI'
     

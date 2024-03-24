@@ -34,6 +34,12 @@ class StargateData(NetworkDataFetcher):
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.BSC_STG
+                ),
+                TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.OPTIMISM_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.ARBITRUM_USDV
                 )
             }
         ),
@@ -107,6 +113,12 @@ class StargateData(NetworkDataFetcher):
                 TokenSymbol.ETH: TokenBridgeInfo(
                     bridge_contract=StargateContracts.OPTIMISM_ETH,
                     pool_id=13
+                ),
+                TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.OPTIMISM_BRIDGE_RECOLOR,
+                ),
+                TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
+                    bridge_contract=StargateContracts.OPTIMISM_USDV
                 )
             }
         ),

@@ -1,11 +1,11 @@
+import random
 from typing import Tuple
 
 from eth_abi import abi
 from eth_typing import HexStr
-from web3 import Web3
 from web3.types import TxParams
 
-from min_library.models.contracts.contracts import ContractsFactory, TokenContractData
+from min_library.models.contracts.contracts import TokenContractData
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus, TokenSymbol
 from min_library.models.others.params_types import ParamsTypes
@@ -28,7 +28,7 @@ class Stargate(SwapTask):
     ) -> bool:
         check_message = self.validate_swap_inputs(
             first_arg=self.client.account_manager.network.name,
-            second_arg=swap_info.to_network,
+            second_arg=swap_info.to_network.name,
             param_type='networks'
         )
         if check_message:
@@ -38,18 +38,18 @@ class Stargate(SwapTask):
 
             return False
 
-        from_network = self.client.account_manager.network.name
-        
+        account_network = self.client.account_manager.network.name
+
         if swap_info.to_token in StargateData.SPECIAL_COINS:
             full_path = swap_info.from_token + swap_info.to_token
-            
+
             src_bridge_data = StargateData.get_token_bridge_info(
-                network_name=from_network,
+                network_name=account_network,
                 token_symbol=full_path
             )
         else:
             src_bridge_data = StargateData.get_token_bridge_info(
-                network_name=from_network,
+                network_name=account_network,
                 token_symbol=swap_info.from_token
             )
 
@@ -63,14 +63,14 @@ class Stargate(SwapTask):
 
         if dst_fee and isinstance(dst_fee, float):
             dst_network = Networks.get_network(
-                network_name=swap_info.to_network
+                network_name=swap_info.to_network.name
             )
             dst_fee = TokenAmount(
                 amount=dst_fee,
                 decimals=dst_network.decimals
             )
 
-        data, value = await self.get_data_for_swap(
+        data, value, swap_info = await self.get_data_for_swap(
             swap_info=swap_info,
             swap_query=swap_query,
             router_contract=contract,
@@ -79,7 +79,7 @@ class Stargate(SwapTask):
         )
 
         if not value:
-            message = f'Can not get value for ({from_network.upper()})'
+            message = f'Can not get value for ({account_network.upper()})'
 
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.ERROR, message=message
@@ -151,8 +151,6 @@ class Stargate(SwapTask):
             self.client.account_manager.custom_logger.log_message(
                 status=log_status, message=log_message
             )
-
-            return receipt_status
         except Exception as e:
             error = str(e)
             if 'insufficient funds for gas + value' in error:
@@ -163,7 +161,25 @@ class Stargate(SwapTask):
                 self.client.account_manager.custom_logger.log_message(
                     status=LogStatus.ERROR, message=error
                 )
-        return False
+
+        wait_time = self.get_wait_time()
+
+        return wait_time if receipt_status else False
+
+    def get_wait_time(self) -> int:
+        match self.client.account_manager.network.name:
+            case Networks.Arbitrum.name:
+                wait_time = (0.9 * 60, 2 * 60)
+            case Networks.Avalanche.name:
+                wait_time = (1 * 60, 2 * 60)
+            case Networks.BSC.name:
+                wait_time = (1 * 60, 2.5 * 60)
+            case Networks.Optimism.name:
+                wait_time = (0.9 * 60, 1.8 * 60)
+            case Networks.Polygon.name:
+                wait_time = (20 * 60, 21 * 60)
+
+        return random.randint(int(wait_time[0]), int(wait_time[1]))
 
     async def get_data_for_swap(
         self,
@@ -172,16 +188,14 @@ class Stargate(SwapTask):
         router_contract: ParamsTypes.Contract,
         src_pool_id: int | None,
         dst_fee: TokenAmount | None = None
-    ) -> Tuple[str, TokenAmount]:  
+    ) -> Tuple[str, TokenAmount]:
         if swap_info.to_token in StargateData.SPECIAL_COINS:
-            full_path = swap_info.from_token + swap_info.to_token
-            dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
-                network_name=swap_info.to_network,
-                token_symbol=full_path
+            dst_chain_id = StargateData.get_chain_id(
+                network_name=swap_info.to_network.name
             )
-        else:            
+        else:
             dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
-                network_name=swap_info.to_network,
+                network_name=swap_info.to_network.name,
                 token_symbol=swap_info.to_token
             )
         address = self.client.account_manager.account.address
@@ -196,13 +210,19 @@ class Stargate(SwapTask):
                 _minAmountLd=int(swap_query.amount_from.Wei *
                                  (100 - swap_info.slippage) / 100),
             )
+            
             multiplier = 1.03
-            data = router_contract.encodeABI('swapETH', args=tx_args.get_tuple())
+            data = router_contract.encodeABI(
+                'swapETH', args=tx_args.get_tuple())
+            
+            match self.client.account_manager.network:
+                case Networks.BSC:
+                    swap_info.gas_price = 1
 
         elif (
             swap_info.from_token == TokenSymbol.USDV
             and swap_info.to_token == TokenSymbol.USDV
-        ):            
+        ):
             swap_info.slippage = 0
             swap_query = await self.compute_min_destination_amount(
                 swap_query=swap_query,
@@ -236,7 +256,7 @@ class Stargate(SwapTask):
 
             tx_args = TxArgs(
                 _param=TxArgs(
-                    to=abi.encode(["address"],[address]),
+                    to=abi.encode(["address"], [address]),
                     amountLD=swap_query.amount_from.Wei,
                     minAmountLD=swap_query.min_to_amount.Wei,
                     dstEid=dst_chain_id
@@ -254,9 +274,10 @@ class Stargate(SwapTask):
                 'send', args=tx_args.get_tuple()
             )
             fee.Wei = int(fee.Wei * multiplier)
-            value = fee
 
-            return data, value
+            match self.client.account_manager.network:
+                case Networks.BSC:
+                    swap_info.gas_price = 1
 
         elif (
             swap_info.from_token != TokenSymbol.USDV
@@ -267,7 +288,7 @@ class Stargate(SwapTask):
                 min_to_amount=swap_query.amount_from.Wei,
                 swap_info=swap_info
             )
-            
+
             lz_tx_params = TxArgs(
                 lvl=1,
                 limit=170000
@@ -279,13 +300,17 @@ class Stargate(SwapTask):
             adapter_params = self.client.account_manager.w3.to_hex(
                 adapter_params[30:])
 
+            usdv_contract = await self.client.contract.get(
+                contract=swap_query.to_token
+            )
+
             fee = await self._quote_send_fee(
-                router_contract=router_contract,
+                router_contract=usdv_contract,
                 swap_query=swap_query,
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
-            multiplier = 1.03
+            multiplier = 1.02
 
             tx_args = TxArgs(
                 _swapParam=TxArgs(
@@ -312,10 +337,12 @@ class Stargate(SwapTask):
             data = router_contract.encodeABI(
                 'swapRecolorSend', args=tx_args.get_tuple()
             )
-            fee.Wei = int(fee.Wei * multiplier)
-            value = fee
 
-            return data, value
+            fee.Wei = int(fee.Wei * multiplier)
+
+            match self.client.account_manager.network:
+                case Networks.BSC:
+                    swap_info.gas_price = 2.5
 
         elif swap_info.from_token == TokenSymbol.STG:
             lz_tx_params = TxArgs(
@@ -336,7 +363,8 @@ class Stargate(SwapTask):
                 adapterParam=adapter_params
             )
 
-            data = router_contract.encodeABI('sendTokens', args=tx_args.get_tuple())
+            data = router_contract.encodeABI(
+                'sendTokens', args=tx_args.get_tuple())
             multiplier = 1.03
 
             fee = await self._estimate_send_tokens_fee(
@@ -345,9 +373,10 @@ class Stargate(SwapTask):
                 adapter_params=adapter_params
             )
             fee.Wei = int(fee.Wei * multiplier)
-            value = fee
 
-            return data, value
+            match self.client.account_manager.network:
+                case Networks.BSC:
+                    swap_info.gas_price = 2.5
 
         else:
             lz_tx_params = TxArgs(
@@ -374,18 +403,23 @@ class Stargate(SwapTask):
             )
 
             data = router_contract.encodeABI('swap', args=tx_args.get_tuple())
-            multiplier = 1.03
+            multiplier = 1.02
 
-        fee = await self._quote_layer_zero_fee(
-            router_contract=router_contract,
-            dst_chain_id=dst_chain_id,
-            lz_tx_params=lz_tx_params,
-            src_token_symbol=swap_info.from_token,
-        )
-        fee.Wei = int(fee.Wei * multiplier)
+            fee = await self._quote_layer_zero_fee(
+                router_contract=router_contract,
+                dst_chain_id=dst_chain_id,
+                lz_tx_params=lz_tx_params,
+                src_token_symbol=swap_info.from_token,
+            )
+            fee.Wei = int(fee.Wei * multiplier)
+
+            match self.client.account_manager.network:
+                case Networks.BSC:
+                    swap_info.gas_price = 2.5
+
         value = fee
 
-        return data, value
+        return data, value, swap_info
 
     async def _estimate_send_tokens_fee(
         self,

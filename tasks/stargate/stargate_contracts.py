@@ -36,6 +36,11 @@ class StargateContracts:
         address='0xbf22f0f184bCcbeA268dF387a49fF5238dD23E40',
         abi=STARGATE_ROUTER_ETH_ABI
     )
+    
+    ARBITRUM_USDV = ContractsFactory.get_contract(
+        network_name=Networks.Arbitrum.name,
+        token_symbol=TokenSymbol.USDV
+    )
 
     ARBITRUM_STG = RawContract(
         title='Stargate Finance: (Arbitrum STG)',
@@ -117,6 +122,17 @@ class StargateContracts:
         title='Stargate Finance: Router (Optimism USDC)',
         address='0xb0d502e938ed5f4df2e681fe6e419ff29631d62b',
         abi=STARGATE_ROUTER_ABI
+    )
+    
+    OPTIMISM_BRIDGE_RECOLOR = RawContract(
+        title='BridgeRecolor (Optimism)',
+        address='0x31691Fd2Cf50c777943b213836C342327f0DAB9b',
+        abi=STARGATE_BRIDGE_RECOLOR
+    )
+    
+    OPTIMISM_USDV = ContractsFactory.get_contract(
+        network_name=Networks.Optimism.name,
+        token_symbol=TokenSymbol.USDV
     )
 
     POLYGON_UNIVERSAL = RawContract(
