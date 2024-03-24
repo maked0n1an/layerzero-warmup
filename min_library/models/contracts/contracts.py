@@ -21,6 +21,8 @@ class ContractsFactory:
                 return AvalancheTokenContracts.get_token(token_symbol)
             case Networks.BSC.name:
                 return BscTokenContracts.get_token(token_symbol)
+            case Networks.Core.name:
+                return CoreTokenContracts.get_token(token_symbol)
             case Networks.Fantom.name:
                 return FantomTokenContracts.get_token(token_symbol)
             # case Networks.Kava.name:
@@ -64,7 +66,6 @@ class TokenContractData(metaclass=Singleton):
 class EthereumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
 
-
 class ArbitrumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
 
@@ -96,9 +97,9 @@ class ArbitrumTokenContracts(TokenContractData):
         address='0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
         decimals=6
     )
-    
+
     USDV = TokenContract(
-        title='OptimizedTransparentUpgradeableProxy',
+        title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi=read_json(
             path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
@@ -141,9 +142,9 @@ class AvalancheTokenContracts(TokenContractData):
         title=TokenSymbol.USDT,
         address='0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
     )
-    
+
     USDV = TokenContract(
-        title='OptimizedTransparentUpgradeableProxy',
+        title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi=read_json(
             path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
@@ -178,15 +179,29 @@ class BscTokenContracts(TokenContractData):
         title=TokenSymbol.STG,
         address='0xb0d502e938ed5f4df2e681fe6e419ff29631d62b',
     )
-    
+
     USDV = TokenContract(
-        title='OptimizedTransparentUpgradeableProxy',
+        title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi=read_json(
             path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
         )
     )
 
+class CoreTokenContracts(TokenContractData):
+    CORE = NativeTokenContract(title=TokenSymbol.CORE)
+    
+    USDT = TokenContract(
+        title=TokenSymbol.USDT,
+        address='0x900101d06a7426441ae63e9ab3b9b0f63be145f1',
+        decimals=6
+    )
+    
+    WCORE = TokenContract(
+        title=TokenSymbol.WCORE,
+        address='0x191e94fa59739e188dce837f7f6978d84727ad01',
+        decimals=18
+    )
 
 class FantomTokenContracts(TokenContractData):
     USDC = TokenContract(
@@ -234,6 +249,14 @@ class OptimismTokenContracts(TokenContractData):
         address='0x2E3D870790dC77A83DD1d18184Acc7439A53f475'
     )
 
+    USDV = TokenContract(
+        title=TokenSymbol.USDV,
+        address='0x323665443CEf804A3b5206103304BD4872EA4253',
+        abi=read_json(
+            path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
+        )
+    )
+
 
 class PolygonTokenContracts(TokenContractData):
     MATIC = NativeTokenContract(title=TokenSymbol.MATIC)
@@ -255,9 +278,9 @@ class PolygonTokenContracts(TokenContractData):
         address='0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
         decimals=6
     )
-    
+
     USDV = TokenContract(
-        title='OptimizedTransparentUpgradeableProxy',
+        title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi=read_json(
             path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
