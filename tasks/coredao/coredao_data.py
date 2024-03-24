@@ -15,5 +15,13 @@ class CoredaoData(NetworkDataFetcher):
                     bridge_contract=CoreDaoBridgeContracts.BSC
                 )
             }
+        ),
+        Networks.Core.name: NetworkData(
+            chain_id=153,
+            bridge_dict={
+                TokenSymbol.USDT: TokenBridgeInfo(
+                    bridge_contract=CoreDaoBridgeContracts.CORE
+                )
+            }
         )
     }
