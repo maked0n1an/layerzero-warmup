@@ -59,10 +59,11 @@ async def bridge_stargate(
     module_info: SwapInfo | None = None
 ) -> int:
     swap_info = SwapInfo(
-        from_token=TokenSymbol.USDT,
-        to_token=TokenSymbol.USDT,
         from_network=Networks.BSC,
-        to_network=Networks.Polygon
+        to_network=Networks.Polygon,
+        from_token=TokenSymbol.USDT,
+        to_token=TokenSymbol.USDC_E,
+        slippage=0.1
     )
 
     stargate_instance = Stargate
@@ -81,10 +82,10 @@ async def bridge_coredao(
     module_info: SwapInfo | None = None
 ) -> int:
     swap_info = SwapInfo(
+        from_network=Networks.Core,
+        to_network=Networks.BSC,
         from_token=TokenSymbol.USDT,
         to_token=TokenSymbol.USDT,
-        from_network=Networks.Core,
-        to_network=Networks.BSC
     )
 
     coredao_instance = CoreDaoBridge
@@ -147,10 +148,11 @@ async def swap_shadowswap(
     module_info: SwapInfo | None = None
 ) -> int:
     swap_info = SwapInfo(
+        from_network=Networks.Core,
         from_token=TokenSymbol.USDT,
         to_token=TokenSymbol.CORE,
-        amount=0.5,
-        from_network=Networks.Core,
+        amount_from=0.9,
+        amount_to=1.0
     )
 
     shadowswap_instance = ShadowSwap
@@ -164,107 +166,16 @@ async def swap_shadowswap(
     )
 
 
-async def custom_routes(account_info: AccountInfo):
+async def custom_routes(account_info: AccountInfo):    
     CLASSIC_ROUTES_MODULES_USING = [    
-        [
-            bridge_coredao,
-            SwapInfo(
-                from_network=Networks.BSC,
-                to_network=Networks.Core,
-                from_token=TokenSymbol.USDT,
-                to_token=TokenSymbol.USDT,
-            )
-        ],
-        [
-            swap_shadowswap,
-            SwapInfo(
-                from_network=Networks.Core,
-                from_token=TokenSymbol.USDT,
-                to_token=TokenSymbol.CORE,
-                amount_from=1.0,
-                amount_to=1.1
-            )
-        ],
-        [
-            bridge_coredao,
-            SwapInfo(
-                from_network=Networks.Core,
-                to_network=Networks.BSC,
-                from_token=TokenSymbol.USDT,
-                to_token=TokenSymbol.USDT,
-            )
-        ],          
-        [
-            bridge_stargate,
-            SwapInfo(
-                from_network=Networks.BSC,
-                to_network=Networks.Polygon,
-                from_token=TokenSymbol.USDV,
-                to_token=TokenSymbol.USDV
-            )
-        ],
-        [
-            bridge_stargate,
-            SwapInfo(
-                from_network=Networks.Polygon,
-                to_network=Networks.BSC,
-                from_token=TokenSymbol.USDV,
-                to_token=TokenSymbol.USDV,
-                slippage=0.5
-            )
-        ],        
         # [
         #     bridge_stargate,
         #     SwapInfo(
-        #         from_network=Networks.Optimism, # OP - ARB (not working)
-        #         to_network=Networks.Arbitrum,
-        #         from_token=TokenSymbol.USDC_E,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Arbitrum,
-        #         to_network=Networks.Optimism,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Optimism,
-        #         to_network=Networks.Arbitrum,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Arbitrum,
-        #         to_network=Networks.Optimism,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Optimism,
-        #         to_network=Networks.Arbitrum,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Arbitrum,
+        #         from_network=Networks.Polygon,
         #         to_network=Networks.BSC,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDT,
+        #         slippage=0.1
         #     )
         # ],
         # [
@@ -282,8 +193,36 @@ async def custom_routes(account_info: AccountInfo):
         #         from_network=Networks.Core,
         #         from_token=TokenSymbol.USDT,
         #         to_token=TokenSymbol.CORE,
-        #         amount_from=1.0,
-        #         amount_to=1.1
+        #         amount_from=0.95,
+        #         amount_to=1.05
+        #     )
+        # ],
+        # [
+        #     bridge_coredao,
+        #     SwapInfo(
+        #         from_network=Networks.Core,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDT,
+        #     )
+        # ],          
+        # [
+        #     bridge_coredao,
+        #     SwapInfo(
+        #         from_network=Networks.BSC,
+        #         to_network=Networks.Core,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDT,
+        #     )
+        # ],
+        # [
+        #     swap_shadowswap,
+        #     SwapInfo(
+        #         from_network=Networks.Core,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.CORE,
+        #         amount_from=0.9,
+        #         amount_to=1.0
         #     )
         # ],
         # [
@@ -295,6 +234,116 @@ async def custom_routes(account_info: AccountInfo):
         #         to_token=TokenSymbol.USDT,
         #     )
         # ],        
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.BSC,
+        #         to_network=Networks.Polygon,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDC_E,
+        #         slippage=0.1
+        #     )
+        # ],   
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Polygon,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDC_E,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],   
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.Optimism,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],      
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],      
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.Avalanche,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],      
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Avalanche, # OP - ARB (not working), AVAX - BSC (not working)
+        #         to_network=Networks.Optimism,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.Optimism,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        [
+            bridge_stargate,
+            SwapInfo(
+                from_network=Networks.BSC,
+                to_network=Networks.Polygon,
+                from_token=TokenSymbol.USDT,
+                to_token=TokenSymbol.USDT,
+                slippage=0.3
+            )
+        ],
     ]
 
     async def call_route(step):
@@ -307,8 +356,7 @@ async def custom_routes(account_info: AccountInfo):
         wait_time = await call_route(step)
 
         if not wait_time:
-            console_logger.warning(msg='Route has been broked.')
-            return
+            console_logger.warning(msg='Route has been broken, maybe some errors')
 
         if IS_SLEEP and wait_time and step != copy_route[-1]:
             await delay(
