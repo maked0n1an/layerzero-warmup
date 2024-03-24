@@ -8,11 +8,9 @@ from aiohttp import (
     ClientSession
 )
 
-from min_library.models.logger.logger import ConsoleLoggerSingleton
+from min_library.models.logger.logger import console_logger
 from user_data.settings.settings import (
-    RETRY_COUNT,
-    SLEEP_BETWEEN_ACCS_FROM,
-    SLEEP_BETWEEN_ACCS_TO
+    RETRY_COUNT
 )
 import min_library.models.others.exceptions as exceptions
 
@@ -27,23 +25,19 @@ def retry(func):
 
                 return result
             except Exception as e:
-                await delay(10, 60, f"One more retry: {retries}/{RETRY_COUNT}")
+                await delay(60, f"One more retry: {retries}/{RETRY_COUNT}")
                 retries += 1
 
     return _wrapper
 
 
 async def delay(
-    sleep_from: int = SLEEP_BETWEEN_ACCS_FROM,
-    sleep_to: int = SLEEP_BETWEEN_ACCS_TO,
+    sleep_time: int,
     message: str = ""
 ) -> None:
-    delay_secs = random.randint(sleep_from, sleep_to)
+    console_logger.info(f"Sleeping for {sleep_time} seconds {message}")
 
-    logger = ConsoleLoggerSingleton.get_logger()
-    logger.info(f"Sleeping for {delay_secs} seconds: {message}")
-
-    await asyncio.sleep(delay_secs)
+    await asyncio.sleep(sleep_time)
 
 
 def format_output(message: str):

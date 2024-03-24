@@ -1,6 +1,7 @@
 import random
 
 from min_library.models.networks.network import Network
+from min_library.models.networks.networks import Networks
 
 
 class SwapInfo:
@@ -9,7 +10,7 @@ class SwapInfo:
         from_token: str,
         to_token: str,
         slippage: float = 0.5,
-        from_network: Network | None = None,
+        from_network: Network = Networks.Goerli,
         to_network: Network | None = None,
         amount: float | None = None,
         amount_from: float | None = None,

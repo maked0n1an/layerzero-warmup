@@ -19,7 +19,7 @@ class CustomLogger:
         create_log_file_per_account: bool = False
     ) -> None:
         self.account_id = account_id
-        self.masked_address = address[:6] + "..." + address[-4:]        
+        self.masked_address = address[:6] + "..." + address[-4:]
         self.network = network
         self.create_log_file_per_account = create_log_file_per_account
         if create_log_file_per_account:
@@ -33,7 +33,7 @@ class CustomLogger:
     def get_logging_format(self) -> dict:
         log_format_dict = {
             'log_format': (
-                CustomLogDataAndRecord.LOG_TIME 
+                CustomLogDataAndRecord.LOG_TIME
                 + CustomLogDataAndRecord.LOG_LEVELNAME_FORMAT
                 + CustomLogDataAndRecord.LOG_MESSAGE
             ),
@@ -158,16 +158,16 @@ class CustomLogDataAndRecord(CustomLogFormattedRecord):
     WHITE = "\x1b[37;20m"
     GREY = "\x1b[38;20m"
     RESET = "\x1b[0m"
-    
+
     SUCCESS_FORMAT = GREEN + LOG_LEVELNAME_FORMAT + RESET
 
     FORMATS = {
-        LogStatus.DEBUG : BLUE + LOG_LEVELNAME_FORMAT + RESET,
+        LogStatus.DEBUG: BLUE + LOG_LEVELNAME_FORMAT + RESET,
         LogStatus.INFO: WHITE + LOG_LEVELNAME_FORMAT + RESET,
         LogStatus.WARNING: YELLOW + LOG_LEVELNAME_FORMAT + RESET,
         LogStatus.SUCCESS: SUCCESS_FORMAT,
-        LogStatus.ERROR: RED + LOG_LEVELNAME_FORMAT + RESET,  
-        
+        LogStatus.ERROR: RED + LOG_LEVELNAME_FORMAT + RESET,
+
         LogStatus.APPROVED: SUCCESS_FORMAT,
         LogStatus.MINTED: SUCCESS_FORMAT,
         LogStatus.BRIDGED: SUCCESS_FORMAT,
@@ -194,11 +194,15 @@ class ConsoleLoggerSingleton:
         if ConsoleLoggerSingleton._instance is None:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.INFO)
-            formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
-            
+            formatter = logging.Formatter(
+                '%(asctime)s | %(levelname)-8s | %(message)s')
+
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(formatter)
             logger.addHandler(console_handler)
             ConsoleLoggerSingleton._instance = logger
-        
+
         return ConsoleLoggerSingleton._instance
+
+
+console_logger = ConsoleLoggerSingleton.get_logger()

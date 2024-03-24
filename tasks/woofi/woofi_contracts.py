@@ -42,7 +42,7 @@ class WoofiContracts:
     def get_dex_contract(cls, name: str, network: str) -> RawContract | None:
         if name not in cls.contracts_dict:
             raise exceptions.DexNotExists(
-                "This router has not been added to WooFiContracts")
+                f"This router has not been added to {__class__.__name__}")
 
         router_data = cls.contracts_dict[name]
 
