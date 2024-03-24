@@ -1,6 +1,5 @@
 from min_library.models.bridges.bridge_data import TokenBridgeInfo
 from min_library.models.bridges.network_data import NetworkData
-from min_library.models.contracts.contracts import ContractsFactory
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import TokenSymbol
 from min_library.models.bridges.network_data_fetcher import NetworkDataFetcher
@@ -36,7 +35,7 @@ class StargateData(NetworkDataFetcher):
                     bridge_contract=StargateContracts.BSC_STG
                 ),
                 TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.OPTIMISM_BRIDGE_RECOLOR,
+                    bridge_contract=StargateContracts.OPTIMISM_USDV_BRIDGE_RECOLOR,
                 ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.ARBITRUM_USDV
@@ -115,7 +114,7 @@ class StargateData(NetworkDataFetcher):
                     pool_id=13
                 ),
                 TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.OPTIMISM_BRIDGE_RECOLOR,
+                    bridge_contract=StargateContracts.OPTIMISM_USDV_BRIDGE_RECOLOR,
                 ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.OPTIMISM_USDV

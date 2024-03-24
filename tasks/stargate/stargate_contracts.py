@@ -41,6 +41,12 @@ class StargateContracts:
         network_name=Networks.Arbitrum.name,
         token_symbol=TokenSymbol.USDV
     )
+    
+    ARBITRUM_USDV_BRIDGE_RECOLOR = RawContract(
+        title='BridgeRecolor (Arbitrum)',
+        address='0xAb43a615526e3e15B63e5812f74a0A1B86E9965E',
+        abi=STARGATE_BRIDGE_RECOLOR
+    )
 
     ARBITRUM_STG = RawContract(
         title='Stargate Finance: (Arbitrum STG)',
@@ -124,7 +130,7 @@ class StargateContracts:
         abi=STARGATE_ROUTER_ABI
     )
     
-    OPTIMISM_BRIDGE_RECOLOR = RawContract(
+    OPTIMISM_USDV_BRIDGE_RECOLOR = RawContract(
         title='BridgeRecolor (Optimism)',
         address='0x31691Fd2Cf50c777943b213836C342327f0DAB9b',
         abi=STARGATE_BRIDGE_RECOLOR

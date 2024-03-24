@@ -142,6 +142,8 @@ class Stargate(SwapTask):
                 await sleep(20, 50)
         else:
             tx_params['value'] += swap_query.amount_from.Wei
+            
+        receipt_status = 0
         try:
             receipt_status, log_status, log_message = await self.perform_bridge(
                 swap_info, swap_query, tx_params,
@@ -177,7 +179,7 @@ class Stargate(SwapTask):
             case Networks.Optimism.name:
                 wait_time = (0.9 * 60, 1.8 * 60)
             case Networks.Polygon.name:
-                wait_time = (20 * 60, 21 * 60)
+                wait_time = (22 * 60, 23 * 60)
 
         return random.randint(int(wait_time[0]), int(wait_time[1]))
 
@@ -227,7 +229,8 @@ class Stargate(SwapTask):
             swap_query = await self.compute_min_destination_amount(
                 swap_query=swap_query,
                 min_to_amount=swap_query.amount_from.Wei,
-                swap_info=swap_info
+                swap_info=swap_info,
+                is_to_token_price_wei=True
             )
             msg_contract_address = await router_contract.functions.getRole(3).call()
             msg_contract = await self.client.contract.get(
@@ -286,7 +289,8 @@ class Stargate(SwapTask):
             swap_query = await self.compute_min_destination_amount(
                 swap_query=swap_query,
                 min_to_amount=swap_query.amount_from.Wei,
-                swap_info=swap_info
+                swap_info=swap_info,
+                is_to_token_price_wei=True
             )
 
             lz_tx_params = TxArgs(
@@ -310,7 +314,7 @@ class Stargate(SwapTask):
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
-            multiplier = 1.02
+            multiplier = 1.01
 
             tx_args = TxArgs(
                 _swapParam=TxArgs(
