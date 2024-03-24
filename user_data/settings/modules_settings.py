@@ -1,15 +1,57 @@
+from typing import (
+    Any,
+    Callable
+)
+
 from min_library.models.account.account_manager import AccountInfo
 from min_library.models.client import Client
+from min_library.models.logger.logger import console_logger
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus, TokenSymbol
 from min_library.models.swap.swap_info import SwapInfo
+from min_library.utils.helpers import delay
 from tasks.pancake_swap.pancake_swap import PancakeSwap
-from user_data.settings.settings import (
-    IS_SLEEP
-)
+from tasks.shadow_swap.shadow_swap import ShadowSwap
 from tasks.coredao.coredao import CoreDaoBridge
 from tasks.stargate.stargate import Stargate
 from tasks.testnet_bridge.testnet_bridge import TestnetBridge
+from user_data.settings.settings import (
+    IS_SLEEP
+)
+
+ModuleType = Callable[..., Any]
+ActionType = Callable[[Any, SwapInfo], Any]
+
+
+async def _default_settings(
+    module: ModuleType,
+    action: ActionType,
+    account_info: AccountInfo,
+    module_info: SwapInfo,
+    swap_info: SwapInfo,
+) -> int:
+    client = Client(
+        account_id=account_info.account_id,
+        private_key=account_info.private_key,
+        proxy=account_info.proxy,
+        network=(
+            module_info.from_network
+            if module_info
+            else swap_info.from_network
+        )
+    )
+
+    module_instance = module(client=client)
+
+    if module_info:
+        swap_info = module_info
+
+    client.account_manager.custom_logger.log_message(
+        LogStatus.INFO, f'Started {module.__name__}'
+    )
+
+    wait_time = await action(module_instance, swap_info)
+    return wait_time
 
 
 async def bridge_stargate(
@@ -19,185 +61,172 @@ async def bridge_stargate(
     swap_info = SwapInfo(
         from_token=TokenSymbol.USDT,
         to_token=TokenSymbol.USDT,
+        from_network=Networks.BSC,
         to_network=Networks.Polygon
     )
 
-    client = Client(
-        account_id=account_info.account_id if account_info else "",
-        private_key=account_info.private_key if account_info else "",
-        proxy=account_info.proxy if account_info else "",
-        network=module_info.from_network if module_info else Networks.BSC
+    stargate_instance = Stargate
+
+    return await _default_settings(
+        module=stargate_instance,
+        action=stargate_instance.crosschain_swap,
+        account_info=account_info,
+        module_info=module_info,
+        swap_info=swap_info
     )
 
-    stargate = Stargate(client=client)
 
-    if module_info:
-        swap_info = SwapInfo(
-            from_token=module_info.from_token,
-            to_token=module_info.to_token,
-            to_network=module_info.to_network
-        )
-
-    client.account_manager.custom_logger.log_message(
-        LogStatus.INFO, f'Started Stargate'
-    )
-
-    wait_time = await stargate.crosschain_swap(swap_info)
-    return wait_time
-
+async def bridge_coredao(
+    account_info: AccountInfo,
+    module_info: SwapInfo | None = None
+) -> int:
     swap_info = SwapInfo(
         from_token=TokenSymbol.USDT,
         to_token=TokenSymbol.USDT,
-        to_network=Networks.Polygon.name,
+        from_network=Networks.Core,
+        to_network=Networks.BSC
     )
-    match swap_info.from_network:
-        case Networks.BSC.name:
-            swap_info.gas_price = 2.5
-        case Networks.Opbnb.name:
-            swap_info.gas_price = 0.00002
-    
-    client.account_manager.custom_logger.log_message(
-        LogStatus.INFO, f'Started Stargate({"?"})'
+
+    coredao_instance = CoreDaoBridge()
+
+    return await _default_settings(
+        module=coredao_instance,
+        action=coredao_instance.bridge,
+        account_info=account_info,
+        module_info=module_info,
+        swap_info=swap_info
     )
-    return await stargate.swap(swap_info)
 
 
-async def bridge_coredao(account_id, private_key) -> bool:
-    client = Client(
-        account_id=account_id,
-        private_key=private_key,
-        network="?",
-    )
-    coredao = CoreDaoBridge(client=client)
+async def bridge_testnet_bridge(
+    account_info: AccountInfo,
+    module_info: SwapInfo | None = None
+) -> int:
     swap_info = SwapInfo(
-        from_token="?",
-        to_token="?",
-        to_network="?",
+        from_token=TokenSymbol.USDT,
+        to_token=TokenSymbol.USDT,
+        to_network=Networks.Polygon,
+        from_network=Networks.Goerli
     )
-    client.account_manager.custom_logger.log_message(
-        LogStatus.INFO, f'Started CoredaoBridge({"?"})'
+
+    testnetbridge_instance = TestnetBridge()
+
+    return await _default_settings(
+        module=testnetbridge_instance,
+        action=testnetbridge_instance.bridge,
+        account_info=account_info,
+        module_info=module_info,
+        swap_info=swap_info
     )
-    return await coredao.bridge(swap_info)
 
 
-async def bridge_testnet_bridge(account_id, private_key) -> bool:
-    client = Client(
-        account_id=account_id,
-        private_key=private_key,
-        network="?",
-    )
-    testnet_bridge = TestnetBridge(client=client)
+async def swap_pancake(
+    account_info: AccountInfo,
+    module_info: SwapInfo | None = None
+) -> int:
     swap_info = SwapInfo(
-        from_token="?",
-        to_token="?",
-        to_network="?",
+        from_token=TokenSymbol.USDT,
+        to_token=TokenSymbol.USDT,
+        from_network=Networks.Polygon,
+        to_network=Networks.Polygon
     )
-    client.account_manager.custom_logger.log_message(
-        LogStatus.INFO, f'Started TestnetBridge({"?"})'
+
+    pancakeswap_instance = PancakeSwap()
+
+    return await _default_settings(
+        module=pancakeswap_instance,
+        action=pancakeswap_instance.swap,
+        account_info=account_info,
+        module_info=module_info,
+        swap_info=swap_info
     )
-    return await testnet_bridge.bridge(swap_info)
 
 
-async def custom_routes(account_id, private_key):
+async def swap_shadowswap(
+    account_info: AccountInfo,
+    module_info: SwapInfo | None = None
+) -> int:
+    swap_info = SwapInfo(
+        from_token=TokenSymbol.USDT,
+        to_token=TokenSymbol.CORE,
+        amount=0.5,
+        from_network=Networks.Core,
+    )
+
+    shadowswap_instance = ShadowSwap()
+
+    return await _default_settings(
+        module=shadowswap_instance,
+        action=shadowswap_instance.swap,
+        account_info=account_info,
+        module_info=module_info,
+        swap_info=swap_info
+    )
+
+
+async def custom_routes(account_info: AccountInfo):
     CLASSIC_ROUTES_MODULES_USING = [
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Polygon,
+        #         to_network=Networks.Avalanche,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Avalanche,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
         [
-            bridge_stargate,
-            (Networks.Avalanche, TokenSymbol.AVAX),
-            (Networks.Avalanche, TokenSymbol.USDC_E)
+            bridge_coredao,
+            SwapInfo(
+                from_network=Networks.BSC,
+                to_network=Networks.Core,
+                from_token=TokenSymbol.USDT,
+                to_token=TokenSymbol.USDT,
+            )
         ],
         [
-            bridge_stargate,
-            (Networks.Polygon, TokenSymbol.USDC_E),
-            (Networks.BSC, TokenSymbol.USDT)
-        ],
-        [
-            bridge_stargate,
-            (Networks.BSC, TokenSymbol.USDT),
-            (Networks.Core, TokenSymbol.USDT)
+            swap_shadowswap,
+            SwapInfo(
+                from_network=Networks.Core,
+                from_token=TokenSymbol.USDT,
+                to_token=TokenSymbol.CORE,
+                amount=1
+            )
         ],
         [
             bridge_coredao,
-            (Networks.Core, TokenSymbol.USDT),
-            (Networks.BSC, TokenSymbol.USDT)
+            SwapInfo(
+                from_network=Networks.Core,
+                to_network=Networks.BSC,
+                from_token=TokenSymbol.USDT,
+                to_token=TokenSymbol.USDT,
+            )
         ],
-        [
-            'sushiswap_swap',
-            (Networks.BSC, TokenSymbol.USDT),
-            (Networks.BSC, TokenSymbol.USDC)
-        ],
-        [
-            bridge_coredao,
-            (Networks.BSC, TokenSymbol.USDC),
-            (Networks.Core, TokenSymbol.USDC)
-        ],
-        [
-            bridge_coredao,
-            (Networks.Core, TokenSymbol.USDC),
-            (Networks.BSC, TokenSymbol.USDC)
-        ],
-        [
-            'bridge_stargate',
-            (Networks.BSC, TokenSymbol.USDT),
-            (Networks.BSC, TokenSymbol.USDT)
-        ],
-        [
-            'bridge_stargate',
-            (Networks.Core, TokenSymbol.USDT),
-            (Networks.BSC, TokenSymbol.USDT)
-        ],
+        
     ]
 
-    async def call_route(route):
-        if callable(route[0]):
-            return await route[0](*route[1:])
+    async def call_route(step):
+        if callable(step[0]):
+            return await step[0](account_info, step[1])
 
-    client = Client(
-        account_id=account_id,
-        private_key=private_key,
-        proxy=None
-    )
+    for step in CLASSIC_ROUTES_MODULES_USING:
+        wait_time = await call_route(step)
 
-    for route in CLASSIC_ROUTES_MODULES_USING:
-        is_result = await call_route(route)
+        if not wait_time:
+            console_logger.warning(msg='Route has been broked.')
+            return
 
-        if IS_SLEEP and is_result:
-            has_minted_one_time = is_result
-            await client.initial_delay(
-                sleep_from=SLEEP_BETWEEN_BRIDGES_ON_ONE_ACCOUNT_FROM,
-                sleep_to=SLEEP_BETWEEN_BRIDGES_ON_ONE_ACCOUNT_TO,
-                message='before next mint'
+        if IS_SLEEP and wait_time and step != CLASSIC_ROUTES_MODULES_USING[-1]:
+            await delay(
+                sleep_time=wait_time,
+                message='before next step'
             )
-
-
-async def _mint_one_nft_or_some_nfts(account_id, private_key, nft_name) -> bool:
-    random.shuffle(MINT_NETWORKS)
-    has_minted_one_time = False
-
-    for option in MINT_NETWORKS:
-        network_name = random.choice(option)
-        if network_name is None:
-            continue
-
-        network_object = Networks.get_network(network_name=network_name)
-        client = Client(
-            account_id=account_id,
-            private_key=private_key,
-            network=network_object,
-        )
-        zkbridge = ZkBridge(client)
-
-        network = client.account_manager.network.name
-        is_result = await zkbridge.mint(
-            nft_name=nft_name,
-            network=network
-        )
-
-        if IS_SLEEP and network != MINT_NETWORKS[-1] and is_result:
-            has_minted_one_time = is_result
-            await client.initial_delay(
-                sleep_from=SLEEP_BETWEEN_MINTS_ON_ONE_ACCOUNT_FROM,
-                sleep_to=SLEEP_BETWEEN_MINT_ON_ONE_ACCOUNT_TO,
-                message='before next mint'
-            )
-
-    return has_minted_one_time

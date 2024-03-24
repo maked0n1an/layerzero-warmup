@@ -2,43 +2,27 @@ import asyncio
 import random
 import sys
 import time
+from typing import List
 
 from questionary import (
     questionary,
     Choice
 )
 
-from min_library.models.logger.logger import ConsoleLoggerSingleton
+from min_library.models.account.account_manager import AccountInfo
+from min_library.models.logger.logger import console_logger
 from min_library.utils.config import ACCOUNT_NAMES, PRIVATE_KEYS
 from min_library.utils.helpers import delay, format_output
-from settings.settings import (
+from user_data.settings.modules_settings import (
+    bridge_coredao, bridge_stargate, custom_routes, swap_pancake, swap_shadowswap
+)
+from user_data.settings.settings import (
     IS_ACCOUNT_NAMES,
     IS_SHUFFLE_WALLETS,
     IS_SLEEP
 )
 from tasks.swap_task import SwapTask
 
-
-"""
-    function_signature: 0xb1c76d29
-    000: 0000000000000000000000009702230a8ea53601f5cd2dc00fdbc13d4df4a8c7
-    020: 00000000000000000000000000000000000000000000000000000000004630c0
-    040: 000000000000000000000000000000000000000000000000000000000045d6e8
-    060: 0000000000000000000000000000000000000000000000000000000000000003
-    080: 000000000000000000000000280f8024c2813471577fae235ebcb8103d658a64
-    0a0: 00000000000000000000000000000000000000000000000000000000004630c0
-    0c0: 000000000000000000000000000000000000000000000000000000000045d6e8
-    0e0: 0000000000000000000000000000000000000000000000000000000000000066
-    100: 00000000000000000000000000000000000000000000000000000000000001a0
-    120: 000000000000000000000000000000000000000000000000003ba8b18dbfb992
-    140: 0000000000000000000000000000000000000000000000000000000000000000
-    160: 000000000000000000000000280f8024c2813471577fae235ebcb8103d658a64
-    180: 0000000000000000000000000000000000000000000000000000000000000200
-    1a0: 0000000000000000000000000000000000000000000000000000000000000022
-    1c0: 0001000000000000000000000000000000000000000000000000000000000002
-    1e0: 9810000000000000000000000000000000000000000000000000000000000000
-    200: 0000000000000000000000000000000000000000000000000000000000000000
-"""
 
 def greetings():
     name_label = "========= zkBridge Minter Software ========="
@@ -79,10 +63,11 @@ def get_module():
     result = questionary.select(
         "Select a method to get started",
         choices=[
-            Choice(
-                "1) "
-            ),
-            Choice("2) Exit", "exit"),
+            Choice("1) Bridge via Stargate", bridge_stargate),                
+            Choice("2) Bridge via CoreDAO", bridge_coredao),
+            Choice("3) Swap ShadowSwap", swap_shadowswap),  
+            Choice("4) Custom routes", custom_routes),            
+            Choice("5) Exit", "exit"),
         ],
         qmark="⚙️ ",
         pointer="✅ "
@@ -96,26 +81,28 @@ def get_module():
 
 
 def get_accounts():
+    accounts: List[AccountInfo] = []
+
     if IS_ACCOUNT_NAMES:
-        accounts = [
-            {
-                "name": account_name,
-                "key": key
-            } for account_name, key in zip(ACCOUNT_NAMES, PRIVATE_KEYS)
-        ]
+        for account_id, key in zip(ACCOUNT_NAMES, PRIVATE_KEYS):
+            account = AccountInfo(
+                account_id=account_id,
+                private_key=key
+            )
+            accounts.append(account)
     else:
-        accounts = [
-            {
-                "name": _id,
-                "key": key
-            } for _id, key in enumerate(PRIVATE_KEYS, start=1)
-        ]
+        for _id, key in enumerate(PRIVATE_KEYS, start=1):
+            account = AccountInfo(
+                account_id=_id,
+                private_key=key
+            )
+            accounts.append(account)
 
     return accounts
 
 
-async def run_module(module, wallet):
-    return await module(wallet["name"], wallet["key"])
+async def run_module(module, account: AccountInfo):
+    return await module(account)
 
 
 def measure_time_for_all_work(start_time: float):
@@ -124,8 +111,7 @@ def measure_time_for_all_work(start_time: float):
     minutes = int(end_time // 60) if end_time > 60 else 0
     hours = int(end_time // 3600) if end_time > 3600 else 0
 
-    logger.log(
-        20,
+    console_logger.info(
         (
             f"Spent time: "
             f"{hours} hours {minutes} minutes {seconds} seconds"
@@ -146,10 +132,6 @@ async def main(module):
             await delay(message='before next account')
 
 if __name__ == '__main__':
-    SwapTask.parse_params(
-        params='0xb1c76d290000000000000000000000009702230a8ea53601f5cd2dc00fdbc13d4df4a8c700000000000000000000000000000000000000000000000000000000004630c0000000000000000000000000000000000000000000000000000000000045d6e80000000000000000000000000000000000000000000000000000000000000003000000000000000000000000280f8024c2813471577fae235ebcb8103d658a6400000000000000000000000000000000000000000000000000000000004630c0000000000000000000000000000000000000000000000000000000000045d6e8000000000000000000000000000000000000000000000000000000000000006600000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000003ba8b18dbfb9920000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280f8024c2813471577fae235ebcb8103d658a6400000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000022000100000000000000000000000000000000000000000000000000000000000298100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-    )
-
     greetings()
 
     if not is_bot_setuped_to_start():
@@ -160,13 +142,12 @@ if __name__ == '__main__':
     module_data = get_module()
 
     start_time = time.time()
-    logger = ConsoleLoggerSingleton.get_logger()
-    logger.log(
-        20, "The bot started to measure time for all work"
+
+    console_logger.info(
+        "The bot started to measure time for all work"
     )
 
     asyncio.run(main(module_data))
 
     measure_time_for_all_work(start_time)
     end_of_work()
-
