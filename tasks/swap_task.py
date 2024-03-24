@@ -416,18 +416,20 @@ class SwapTask:
         else:
             full_path = account_network.explorer + account_network.TxPath
 
-        rounded_amount = round(swap_query.amount_from.Ether, 5)
+        rounded_amount_from = round(swap_query.amount_from.Ether, 5)
+        rounded_amount_to = round(swap_query.min_to_amount.Ether, 5)
 
         if receipt['status']:
             log_status = LogStatus.BRIDGED
-            message = f'{rounded_amount} {swap_info.from_token}'
+            message = f'{rounded_amount_from} {swap_info.from_token}'
         else:
             log_status = LogStatus.ERROR
-            message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
+            message = f'Failed bridge {rounded_amount_from} {swap_info.from_token}'
 
         message += (
             f' from {account_network.name.upper()} -> '
-            f'{swap_info.to_network.name.upper()}: '
+            f'{rounded_amount_to} {swap_info.to_token}'
+            f' in {swap_info.to_network.name.upper()}: '
             f'{full_path + tx_hash.hex()}'
         )
 

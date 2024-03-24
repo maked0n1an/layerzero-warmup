@@ -87,7 +87,7 @@ async def bridge_coredao(
         to_network=Networks.BSC
     )
 
-    coredao_instance = CoreDaoBridge()
+    coredao_instance = CoreDaoBridge
 
     return await _default_settings(
         module=coredao_instance,
@@ -109,7 +109,7 @@ async def bridge_testnet_bridge(
         from_network=Networks.Goerli
     )
 
-    testnetbridge_instance = TestnetBridge()
+    testnetbridge_instance = TestnetBridge
 
     return await _default_settings(
         module=testnetbridge_instance,
@@ -131,7 +131,7 @@ async def swap_pancake(
         to_network=Networks.Polygon
     )
 
-    pancakeswap_instance = PancakeSwap()
+    pancakeswap_instance = PancakeSwap
 
     return await _default_settings(
         module=pancakeswap_instance,
@@ -153,7 +153,7 @@ async def swap_shadowswap(
         from_network=Networks.Core,
     )
 
-    shadowswap_instance = ShadowSwap()
+    shadowswap_instance = ShadowSwap
 
     return await _default_settings(
         module=shadowswap_instance,
@@ -165,25 +165,7 @@ async def swap_shadowswap(
 
 
 async def custom_routes(account_info: AccountInfo):
-    CLASSIC_ROUTES_MODULES_USING = [
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Polygon,
-        #         to_network=Networks.Avalanche,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
-        # [
-        #     bridge_stargate,
-        #     SwapInfo(
-        #         from_network=Networks.Avalanche,
-        #         to_network=Networks.BSC,
-        #         from_token=TokenSymbol.USDV,
-        #         to_token=TokenSymbol.USDV,
-        #     )
-        # ],
+    CLASSIC_ROUTES_MODULES_USING = [    
         [
             bridge_coredao,
             SwapInfo(
@@ -199,7 +181,8 @@ async def custom_routes(account_info: AccountInfo):
                 from_network=Networks.Core,
                 from_token=TokenSymbol.USDT,
                 to_token=TokenSymbol.CORE,
-                amount=1
+                amount_from=1.0,
+                amount_to=1.1
             )
         ],
         [
@@ -210,22 +193,124 @@ async def custom_routes(account_info: AccountInfo):
                 from_token=TokenSymbol.USDT,
                 to_token=TokenSymbol.USDT,
             )
+        ],          
+        [
+            bridge_stargate,
+            SwapInfo(
+                from_network=Networks.BSC,
+                to_network=Networks.Polygon,
+                from_token=TokenSymbol.USDV,
+                to_token=TokenSymbol.USDV
+            )
         ],
-        
+        [
+            bridge_stargate,
+            SwapInfo(
+                from_network=Networks.Polygon,
+                to_network=Networks.BSC,
+                from_token=TokenSymbol.USDV,
+                to_token=TokenSymbol.USDV,
+                slippage=0.5
+            )
+        ],        
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism, # OP - ARB (not working)
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDC_E,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.Optimism,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.Optimism,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Optimism,
+        #         to_network=Networks.Arbitrum,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_stargate,
+        #     SwapInfo(
+        #         from_network=Networks.Arbitrum,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDV,
+        #         to_token=TokenSymbol.USDV,
+        #     )
+        # ],
+        # [
+        #     bridge_coredao,
+        #     SwapInfo(
+        #         from_network=Networks.BSC,
+        #         to_network=Networks.Core,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDT,
+        #     )
+        # ],
+        # [
+        #     swap_shadowswap,
+        #     SwapInfo(
+        #         from_network=Networks.Core,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.CORE,
+        #         amount_from=1.0,
+        #         amount_to=1.1
+        #     )
+        # ],
+        # [
+        #     bridge_coredao,
+        #     SwapInfo(
+        #         from_network=Networks.Core,
+        #         to_network=Networks.BSC,
+        #         from_token=TokenSymbol.USDT,
+        #         to_token=TokenSymbol.USDT,
+        #     )
+        # ],        
     ]
 
     async def call_route(step):
         if callable(step[0]):
             return await step[0](account_info, step[1])
 
-    for step in CLASSIC_ROUTES_MODULES_USING:
+    copy_route = CLASSIC_ROUTES_MODULES_USING
+
+    for step in copy_route:
         wait_time = await call_route(step)
 
         if not wait_time:
             console_logger.warning(msg='Route has been broked.')
             return
 
-        if IS_SLEEP and wait_time and step != CLASSIC_ROUTES_MODULES_USING[-1]:
+        if IS_SLEEP and wait_time and step != copy_route[-1]:
             await delay(
                 sleep_time=wait_time,
                 message='before next step'
