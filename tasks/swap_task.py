@@ -79,7 +79,8 @@ class SwapTask:
         self,
         first_arg: str,
         second_arg: str,
-        param_type: str = 'args'
+        param_type: str = 'args',
+        function: str = 'swap'
     ) -> str:
         """
         Validate inputs for a swap operation.
@@ -88,19 +89,20 @@ class SwapTask:
             first_arg (str): The first argument.
             second_arg (str): The second argument.
             param_type (str): The type of arguments (default is 'args').
+            message (str): The message (default is 'swap')
 
         Returns:
             str: A message indicating the result of the validation.
 
         Example:
         ```python
-        result = validate_swap_inputs('ETH', 'USDT', param_type='symbols')
+        result = validate_swap_inputs('ETH', 'ETH', param_type='symbols')
         print(result)
-        # Output: 'The symbols for swap() are different: ETH != USDT'
+        # Output: 'The symbols for swap() are equal: ETH == ETH'
         ```
         """
         if first_arg.upper() == second_arg.upper():
-            return f'The {param_type} for swap() are equal: {first_arg} == {second_arg}'
+            return f'The {param_type} for {function}() are equal: {first_arg} == {second_arg}'
 
     async def approve_interface(
         self,
@@ -156,7 +158,7 @@ class SwapTask:
 
         if amount.Wei <= approved.Wei:
             return True
-
+        
         tx_params = self.set_all_gas_params(
             swap_info=swap_info,
             tx_params=tx_params
@@ -244,7 +246,8 @@ class SwapTask:
         self,
         swap_query: SwapQuery,
         min_to_amount: int,
-        swap_info: SwapInfo
+        swap_info: SwapInfo,
+        is_to_token_price_wei: bool = False
     ) -> SwapQuery:
         """
         Compute the minimum destination amount for a given swap.
@@ -287,7 +290,7 @@ class SwapTask:
         min_amount_out = TokenAmount(
             amount=min_to_amount * (1 - swap_info.slippage / 100),
             decimals=decimals,
-            wei=True
+            wei=is_to_token_price_wei
         )
 
         return SwapQuery(
@@ -331,80 +334,7 @@ class SwapTask:
         print('name:', await contract.functions.name().call())
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
-
-    async def perform_bridge(
-        self,
-        swap_info: SwapInfo,
-        swap_query: SwapQuery,
-        tx_params: TxParams | dict,
-        external_explorer: str = None
-    ) -> tuple[int, str, str]:
-        """
-        Perform a bridge operation.
-
-        Args:
-            swap_info (SwapInfo): Information about the swap.
-            swap_query (SwapQuery): Query parameters for the swap.
-            tx_params (TxParams | dict): Transaction parameters.
-            external_explorer (str, optional): External explorer URL. Defaults to None.
-
-        Returns:
-            tuple[str, str]: A tuple containing:
-                - A boolean indicating whether the bridge operation was successful.
-                - Status of the bridge operation.
-                - Message regarding the bridge operation.
-        """
-        tx_params = self.set_all_gas_params(
-            swap_info=swap_info,
-            tx_params=tx_params
-        )
-
-        tx_hash, receipt = await self._perform_tx(tx_params)
-
-        account_network = self.client.account_manager.network
-
-        if external_explorer:
-            full_path = external_explorer + account_network.TxPath
-        else:
-            full_path = account_network.explorer + account_network.TxPath
-
-        rounded_amount = round(swap_query.amount_from.Ether, 5)
-
-        if receipt['status']:
-            status = LogStatus.BRIDGED
-            message = f'{rounded_amount} {swap_info.from_token}'
-        else:
-            status = LogStatus.ERROR
-            message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
-
-        message += (
-            f' to {swap_info.to_network.name.upper()} in {swap_info.to_token}: '
-            f'{full_path + tx_hash.hex()}'
-        )
-
-        return receipt['status'], status, message
-
-    async def _get_price_from_binance(
-        self,
-        session: aiohttp.ClientSession,
-        first_token: str,
-        second_token: str
-    ) -> float | None:
-        first_token, second_token = first_token.upper(), second_token.upper()
-        for _ in range(5):
-            try:
-                response = await session.get(
-                    f'https://api.binance.com/api/v3/ticker/price?symbol={first_token}{second_token}')
-                if response.status != 200:
-                    return None
-                result_dict = await response.json()
-                if 'price' in result_dict:
-                    return float(result_dict['price'])
-            except Exception as e:
-                await asyncio.sleep(3)
-        raise ValueError(
-            f'Can not get {first_token}{second_token} price from Binance')
-
+        
     async def perform_swap(
         self,
         swap_info: SwapInfo,
@@ -428,28 +358,103 @@ class SwapTask:
             tx_params=tx_params
         )
 
-        tx_hash, receipt = await self._perform_tx(tx_params)
+        tx_hash, receipt = await self.perform_tx(tx_params)
 
         account_network = self.client.account_manager.network
         full_path = account_network.explorer + account_network.TxPath
-        rounded_amount = round(swap_query.amount_from.Ether, 5)
+        rounded_amount_from = round(swap_query.amount_from.Ether, 5)
+        rounded_amount_to = round(swap_query.min_to_amount.Ether, 5)
 
         if receipt['status']:
             log_status = LogStatus.SWAPPED
-            message = f'{rounded_amount} {swap_info.from_token}'
+            message = f'{rounded_amount_from} {swap_info.from_token}'
 
         else:
             log_status = LogStatus.ERROR
-            message = f'Failed swap {rounded_amount} {swap_info.from_token}'
+            message = f'Failed swap {rounded_amount_from} {swap_info.from_token}'
 
         message += (
-            f' -> {swap_query.min_to_amount.Ether} {swap_info.to_token}: '
+            f' -> {rounded_amount_to} {swap_info.to_token}: '
             f'{full_path + tx_hash.hex()}'
         )
 
         return receipt['status'], log_status, message
 
-    async def _perform_tx(
+    async def perform_bridge(
+        self,
+        swap_info: SwapInfo,
+        swap_query: SwapQuery,
+        tx_params: TxParams | dict,
+        external_explorer: str = None
+    ) -> tuple[int, str, str]:
+        """
+        Perform a bridge operation.
+
+        Args:
+            swap_info (SwapInfo): Information about the swap.
+            swap_query (SwapQuery): Query parameters for the swap.
+            tx_params (TxParams | dict): Transaction parameters.
+            external_explorer (str, optional): External explorer URL. Defaults to None.
+
+        Returns:
+            tuple[str, str]: A tuple containing:
+                - A boolean indicating whether the bridge operation was successful.
+                - Log status of the bridge operation.
+                - Message regarding the bridge operation.
+        """
+        tx_params = self.set_all_gas_params(
+            swap_info=swap_info,
+            tx_params=tx_params
+        )
+
+        tx_hash, receipt = await self.perform_tx(tx_params)
+
+        account_network = self.client.account_manager.network
+
+        if external_explorer:
+            full_path = external_explorer + account_network.TxPath
+        else:
+            full_path = account_network.explorer + account_network.TxPath
+
+        rounded_amount = round(swap_query.amount_from.Ether, 5)
+
+        if receipt['status']:
+            log_status = LogStatus.BRIDGED
+            message = f'{rounded_amount} {swap_info.from_token}'
+        else:
+            log_status = LogStatus.ERROR
+            message = f'Failed bridge {rounded_amount} {swap_info.from_token}'
+
+        message += (
+            f' from {account_network.name.upper()} -> '
+            f'{swap_info.to_network.name.upper()}: '
+            f'{full_path + tx_hash.hex()}'
+        )
+
+        return receipt['status'], log_status, message
+
+    async def _get_price_from_binance(
+        self,
+        session: aiohttp.ClientSession,
+        first_token: str,
+        second_token: str
+    ) -> float | None:
+        first_token, second_token = first_token.upper(), second_token.upper()
+        for _ in range(5):
+            try:
+                response = await session.get(
+                    f'https://api.binance.com/api/v3/ticker/price?symbol={first_token}{second_token}')
+                if response.status != 200:
+                    return None
+                result_dict = await response.json()
+                if 'price' in result_dict:
+                    return float(result_dict['price'])
+            except Exception as e:
+                await asyncio.sleep(3)
+        raise ValueError(
+            f'Can not get {first_token}{second_token} price from Binance')
+
+    async def perform_tx(
         self,
         tx_params: TxParams | dict
     ) -> tuple[_Hash32, TxReceipt]:
