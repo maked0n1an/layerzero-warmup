@@ -1,9 +1,9 @@
 import random
 from web3.types import TxParams
+from min_library.models.bridges.bridge_data import TokenBridgeInfo
 from min_library.models.contracts.contracts import TokenContractData
 from min_library.models.networks.networks import Networks
-from min_library.models.others.constants import LogStatus, TokenSymbol
-from min_library.models.others.params_types import ParamsTypes
+from min_library.models.others.constants import LogStatus
 from min_library.models.others.token_amount import TokenAmount
 
 from min_library.models.swap.swap_info import SwapInfo
@@ -20,8 +20,11 @@ class CoreDaoBridge(SwapTask):
         swap_info: SwapInfo,
         max_fee: float = 0.7
     ) -> str:
+        account_network = self.client.account_manager.network.name
+        swap_info.slippage = 0
+        
         check_message = self.validate_swap_inputs(
-            first_arg=self.client.account_manager.network.name,
+            first_arg=account_network,
             second_arg=swap_info.to_network.name,
             param_type='networks'
         )
@@ -31,27 +34,54 @@ class CoreDaoBridge(SwapTask):
             )
 
             return False
+        
+        if account_network == Networks.Core:
+            sleep_time = random.randint(200, 250)
+            
+            await self.client.step_delay(
+                sleep_time=sleep_time, 
+                message=f'Waiting for some CORE from {__class__.__name__} for any next operations'
+            )
 
         src_bridge_data = CoredaoData.get_token_bridge_info(
-            network_name=self.client.account_manager.network.name,
+            network_name=account_network,
             token_symbol=swap_info.from_token
-        )
-        contract = await self.client.contract.get(
-            contract=src_bridge_data.bridge_contract
         )
 
         swap_query = await self.compute_source_token_amount(
             swap_info=swap_info
         )
-        
-        args, fee = await self._get_data(contract, swap_query, swap_info)
+        swap_query = await self.compute_min_destination_amount(
+            swap_info=swap_info,
+            min_to_amount=swap_query.amount_from.Wei,
+            swap_query=swap_query,
+            is_to_token_price_wei=True
+        )
+
+        prepared_tx_params = await self._prepare_params(
+            src_bridge_data, swap_query, swap_info
+        )
+
+        if not prepared_tx_params['value']:
+            message = f'Can not get value for ({account_network.upper()})'
+
+            self.client.account_manager.custom_logger.log_message(
+                status=LogStatus.ERROR, message=message
+            )
+
+            return False
 
         native_balance = await self.client.contract.get_balance()
+        value = TokenAmount(
+            amount=prepared_tx_params['value'],
+            decimals=self.client.account_manager.network.decimals,
+            wei=True
+        )
 
-        if native_balance.Wei < fee.Wei:
+        if native_balance.Wei < value.Wei:
             message = (
                 f'Too low balance: balance - {round(native_balance.Ether, 2)};'
-                f'value - {round(fee.Ether, 2)}'
+                f' fee - {round(value.Ether, 2)}'
             )
 
             self.client.account_manager.custom_logger.log_message(
@@ -60,29 +90,15 @@ class CoreDaoBridge(SwapTask):
 
             return False
 
-        tx_params = TxParams(
-            to=contract.address,
-            data=contract.encodeABI(
-                'bridge',
-                args=args.get_tuple()
-            ),
-            value=fee.Wei
-        )
-
         swap_info = self.set_custom_gas_price(swap_info)
-
-        tx_params = self.set_all_gas_params(
-            swap_info=swap_info,
-            tx_params=tx_params
-        )
 
         if not swap_query.from_token.is_native_token:
             hexed_tx_hash = await self.approve_interface(
                 token_contract=swap_query.from_token,
-                spender_address=contract.address,
+                spender_address=prepared_tx_params['to'],
                 amount=swap_query.amount_from,
                 swap_info=swap_info,
-                tx_params=tx_params
+                tx_params=prepared_tx_params
             )
 
             if hexed_tx_hash:
@@ -92,11 +108,12 @@ class CoreDaoBridge(SwapTask):
                 )
                 await sleep(20, 50)
         else:
-            tx_params['value'] = swap_query.amount_from.Wei
+            prepared_tx_params['value'] += swap_query.amount_from.Wei
 
+        receipt_status = 0
         try:
             receipt_status, log_status, log_message = await self.perform_bridge(
-                swap_info, swap_query, tx_params,
+                swap_info, swap_query, prepared_tx_params,
                 external_explorer='https://layerzeroscan.com'
             )
 
@@ -128,19 +145,23 @@ class CoreDaoBridge(SwapTask):
     def get_wait_time(self) -> int:
         match self.client.account_manager.network.name:
             case Networks.BSC.name:
-                wait_time = (0.9 * 60, 2 * 60)
+                wait_time = (1 * 60, 2.5 * 60)
             case Networks.Core.name:
-                wait_time = (0.4 * 60, 1.5 * 60)
+                wait_time = (1 * 60, 3 * 60)
 
         return random.randint(int(wait_time[0]), int(wait_time[1]))
 
-    async def _get_data(
+    async def _prepare_params(
         self,
-        contract: ParamsTypes.Contract,
+        src_bridge_data: TokenBridgeInfo,
         swap_query: SwapQuery,
         swap_info: SwapInfo,
-    ) -> tuple[TxArgs, TokenAmount]:
-        match self.client.account_manager.network :
+    ) -> TxParams:
+        contract = await self.client.contract.get(
+            contract=src_bridge_data.bridge_contract
+        )
+
+        match self.client.account_manager.network:
             case Networks.BSC:
                 callParams = TxArgs(
                     refundAddress=self.client.account_manager.account.address,
@@ -163,14 +184,12 @@ class CoreDaoBridge(SwapTask):
                 fee = TokenAmount(amount=result[0], wei=True)
                 multiplier = 1.01
 
-                fee.Wei = int(fee.Wei * multiplier)
-                
             case Networks.Core:
                 callParams = TxArgs(
                     refundAddress=self.client.account_manager.account.address,
                     zroPaymentAddress=TokenContractData.ZERO_ADDRESS
                 )
-                
+
                 chain_id = CoredaoData.get_chain_id(
                     network_name=swap_info.to_network.name
                 )
@@ -194,6 +213,15 @@ class CoreDaoBridge(SwapTask):
                 fee = TokenAmount(amount=result[0], wei=True)
                 multiplier = 1.01
 
-                fee.Wei = int(fee.Wei * multiplier)
-                
-        return args, fee
+        fee.Wei = int(fee.Wei * multiplier)
+
+        tx_params = TxParams(
+            to=contract.address,
+            data=contract.encodeABI(
+                'bridge',
+                args=args.get_tuple()
+            ),
+            value=fee.Wei
+        )
+
+        return tx_params
