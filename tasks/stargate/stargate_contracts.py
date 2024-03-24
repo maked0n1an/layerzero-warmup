@@ -42,7 +42,7 @@ class StargateContracts:
         token_symbol=TokenSymbol.USDV
     )
     
-    ARBITRUM_USDV_BRIDGE_RECOLOR = RawContract(
+    ARBITRUM_USDV_BRIDGE_RECOLOR_NOT_WORKING = RawContract(
         title='BridgeRecolor (Arbitrum)',
         address='0xAb43a615526e3e15B63e5812f74a0A1B86E9965E',
         abi=STARGATE_BRIDGE_RECOLOR
@@ -72,7 +72,7 @@ class StargateContracts:
         abi=STARGATE_STG_ABI
     )
 
-    AVALANCHE_USDV_BRIDGE_RECOLOR = RawContract(
+    AVALANCHE_USDV_BRIDGE_RECOLOR_NOT_WORKING = RawContract(
         title='BridgeRecolor (AVAX-C)',
         address='0x292dD933180412923ee47fA73bBF407B6d776B4C',
         abi=STARGATE_BRIDGE_RECOLOR
@@ -101,7 +101,7 @@ class StargateContracts:
         abi=STARGATE_STG_ABI
     )
 
-    BSC_USDV_BRIDGE_RECOLOR = RawContract(
+    BSC_USDV_BRIDGE_RECOLOR_NOT_WORKING = RawContract(
         title='BridgeRecolor (BSC)',
         address='0x5B1d0467BED2e8Bd67c16cE8bCB22a195ae76870',
         abi=STARGATE_BRIDGE_RECOLOR

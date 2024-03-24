@@ -34,9 +34,9 @@ class StargateData(NetworkDataFetcher):
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.BSC_STG
                 ),
-                TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.OPTIMISM_USDV_BRIDGE_RECOLOR,
-                ),
+                # TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
+                #     bridge_contract=StargateContracts.ARBITRUM_USDV_BRIDGE_RECOLOR_NOT_WORKING,
+                # ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.ARBITRUM_USDV
                 )
@@ -55,13 +55,13 @@ class StargateData(NetworkDataFetcher):
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.AVALANCHE_STG
-                ),                
-                TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR,
-                ),
-                TokenSymbol.USDC + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR,
-                ),
+                ),    
+                # TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
+                #     bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR_NOT_WORKING,
+                # ),            
+                # TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
+                #     bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR_NOT_WORKING,
+                # ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.AVALANCHE_USDV
                 )
@@ -80,9 +80,6 @@ class StargateData(NetworkDataFetcher):
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.BSC_STG
-                ),
-                TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContracts.BSC_USDV_BRIDGE_RECOLOR,
                 ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.BSC_USDV
@@ -139,7 +136,7 @@ class StargateData(NetworkDataFetcher):
                 TokenSymbol.STG: TokenBridgeInfo(
                     bridge_contract=StargateContracts.POLYGON_STG
                 ),
-                TokenSymbol.USDC + TokenSymbol.USDV: TokenBridgeInfo(
+                TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
                     bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR,
                 ),
                 TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
