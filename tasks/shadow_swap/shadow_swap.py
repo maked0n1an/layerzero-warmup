@@ -1,3 +1,4 @@
+from decimal import Decimal
 import random
 import time
 
@@ -53,13 +54,36 @@ class ShadowSwap(SwapTask):
             first_token=swap_info.from_token,
             second_token=swap_info.to_token
         )
-        
+
+        # fee = await self.get_fee_for_bridge(swap_info)
+        # fee = 1.54
+        # balance = await self.client.contract.get_balance()
+        # token_price = await self.get_binance_ticker_price(TokenSymbol.CORE)
+
+        # if balance.Ether > fee:
+        #     self.client.account_manager.custom_logger.log_message(
+        #         status=LogStatus.INFO, message='The account has enough native to do bridges'
+        #     )
+
+        #     return False
+
+        # else:
+        #     native_needed_for_swap = Decimal(str(fee)) - balance.Ether
+        #     swap_info.amount = float(str(native_needed_for_swap)) * 0.75
+            
+        #     self.client.account_manager.custom_logger.log_message(
+        #         status=LogStatus.INFO,
+        #         message=(
+        #             f'The account need to swap {swap_info.amount} '
+        #             f'{swap_info.from_token} to have enough native to bridge back'
+        #         )
+        #     )            
+
         swap_query = await self._create_swap_query(
             contract=contract,
             swap_info=swap_info,
             swap_path=tx_payload_details.swap_path
         )
-
 
         params = TxArgs(
             amountOutMin=swap_query.min_to_amount.Wei,
@@ -82,25 +106,25 @@ class ShadowSwap(SwapTask):
                 args=tuple(list_params)
             )
         )
-
-        if not swap_query.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
-                token_contract=swap_query.from_token,
-                spender_address=contract.address,
-                amount=swap_query.amount_from,
-                swap_info=swap_info,
-                tx_params=tx_params
-            )
-
-            if hexed_tx_hash:
-                self.client.account_manager.custom_logger.log_message(
-                    LogStatus.APPROVED,
-                    message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
-                )
-                await sleep(8, 15)
-        else:
-            tx_params['value'] = swap_query.amount_from.Wei
         try:
+            if not swap_query.from_token.is_native_token:
+                hexed_tx_hash = await self.approve_interface(
+                    token_contract=swap_query.from_token,
+                    spender_address=contract.address,
+                    amount=swap_query.amount_from,
+                    swap_info=swap_info,
+                    tx_params=tx_params
+                )
+
+                if hexed_tx_hash:
+                    self.client.account_manager.custom_logger.log_message(
+                        LogStatus.APPROVED,
+                        message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
+                    )
+                    await sleep(8, 15)
+            else:
+                tx_params['value'] = swap_query.amount_from.Wei
+
             receipt_status, status, message = await self.perform_swap(
                 swap_info, swap_query, tx_params
             )
@@ -140,19 +164,52 @@ class ShadowSwap(SwapTask):
         swap_info: SwapInfo,
         swap_path: List[str]
     ) -> SwapQuery:
-        swap_query = await self.compute_source_token_amount(swap_info=swap_info)
-        
-        amounts_out = await contract.functions.getAmountsOut(
-            swap_query.amount_from.Wei,
-            swap_path
-        ).call()
+        try:
+            swap_query = await self.compute_source_token_amount(swap_info=swap_info)
 
-        return await self.compute_min_destination_amount(
-            swap_query=swap_query,
-            min_to_amount=amounts_out[1],
-            swap_info=swap_info,
-            is_to_token_price_wei=True
-        )
+            amounts_out = await contract.functions.getAmountsOut(
+                swap_query.amount_from.Wei,
+                swap_path
+            ).call()
+
+            return await self.compute_min_destination_amount(
+                swap_query=swap_query,
+                min_to_amount=amounts_out[1],
+                swap_info=swap_info,
+                is_to_token_price_wei=True
+            )
+        except web3_exceptions.ContractLogicError as e:
+            error = str(e)
+            if 'ShadowLibrary: INSUFFICIENT_INPUT_AMOUNT' in error:
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.ERROR,
+                    message=f'Insufficient {swap_info.from_token} for swap '
+                )
+        except Exception as e:
+            error = str(e)
+            self.client.account_manager.custom_logger.log_message(
+                status=LogStatus.ERROR, message=error
+            )
+
+    # async def get_fee_for_bridge(
+    #     self,
+    #     swap_info: SwapInfo
+    # ) -> TokenAmount:
+    #     src_bridge_data = CoredaoData.get_token_bridge_info(
+    #         network_name=Networks.Core.name,
+    #         token_symbol=swap_info.from_token
+    #     )
+    #     chain_id = CoredaoData.get_chain_id(Networks.BSC.name)
+    #     contract = await self.client.contract.get(src_bridge_data.bridge_contract)
+
+    #     result = await contract.functions.estimateBridgeFee(
+    #         chain_id,
+    #         False,
+    #         '0x'
+    #     ).call()
+
+    #     fee = TokenAmount(amount=result[0], wei=True)
+    #     return fee
 
 
 class ShadowSwapRoutes(TxPayloadDetailsFetcher):
