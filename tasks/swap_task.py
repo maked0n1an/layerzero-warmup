@@ -271,10 +271,14 @@ class SwapTask:
         # Output: SwapQuery(from_token=..., to_token=..., amount_to=..., min_to_amount=...)
         ```
         """
+        if swap_info.to_network:
+            dst_network_name = swap_info.to_network.name
+        else:
+            dst_network_name = self.client.account_manager.network.name,
 
         if not swap_query.to_token:
             swap_query.to_token = ContractsFactory.get_contract(
-                network_name=self.client.account_manager.network.name,
+                network_name=dst_network_name,
                 token_symbol=swap_info.to_token
             )
 
@@ -288,7 +292,7 @@ class SwapTask:
             )
 
         min_amount_out = TokenAmount(
-            amount=min_to_amount * (1 - swap_info.slippage / 100),
+            amount=int(min_to_amount * (1 - swap_info.slippage / 100)),
             decimals=decimals,
             wei=is_to_token_price_wei
         )
