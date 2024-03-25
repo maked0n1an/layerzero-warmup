@@ -44,6 +44,11 @@ class TestnetBridge(SwapTask):
         swap_query = await self.compute_source_token_amount(
             swap_info=swap_info
         )
+        swap_query.min_to_amount = TokenAmount(
+            amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
+            decimals=swap_query.from_token.decimals,
+            wei=True
+        )
 
         args = TxArgs(
             _from=self.client.account_manager.account.address,

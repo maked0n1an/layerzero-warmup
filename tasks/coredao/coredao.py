@@ -17,8 +17,7 @@ from tasks.coredao.coredao_data import CoredaoData
 class CoreDaoBridge(SwapTask):
     async def bridge(
         self,
-        swap_info: SwapInfo,
-        max_fee: float = 0.7
+        swap_info: SwapInfo
     ) -> str:
         account_network = self.client.account_manager.network.name
         swap_info.slippage = 0
@@ -51,11 +50,10 @@ class CoreDaoBridge(SwapTask):
         swap_query = await self.compute_source_token_amount(
             swap_info=swap_info
         )
-        swap_query = await self.compute_min_destination_amount(
-            swap_info=swap_info,
-            min_to_amount=swap_query.amount_from.Wei,
-            swap_query=swap_query,
-            is_to_token_price_wei=True
+        swap_query.min_to_amount = TokenAmount(
+            amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
+            decimals=swap_query.from_token.decimals,
+            wei=True
         )
 
         prepared_tx_params = await self._prepare_params(

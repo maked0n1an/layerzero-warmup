@@ -180,7 +180,7 @@ class Stargate(SwapTask):
                 wait_time = (22 * 60, 24 * 60)
 
         return random.randint(int(wait_time[0]), int(wait_time[1]))
-    
+
     def config_some_operations(
         self,
         swap_info: SwapInfo
@@ -188,49 +188,51 @@ class Stargate(SwapTask):
         if swap_info.from_token == TokenSymbol.ETH:
             multiplier_of_value = 1.03
             swap_info.slippage = random.randint(1, 3) / 10
-            
+
         elif (
             swap_info.from_token == TokenSymbol.USDV
             and swap_info.to_token == TokenSymbol.USDV
         ):
             multiplier_of_value = 1.01
-            swap_info.slippage = 0
+            slippage = 0
 
             match self.client.account_manager.network:
                 case Networks.BSC:
                     swap_info.gas_price = 1
-        
+
         elif (
             swap_info.from_token != TokenSymbol.USDV
             and swap_info.to_token == TokenSymbol.USDV
         ):
             multiplier_of_value = 1.01
-            swap_info.slippage = random.randint(1, 2) / 10
+            slippage = random.randint(1, 2) / 10
 
             match self.client.account_manager.network:
                 case Networks.BSC:
-                    swap_info.gas_price = 2.3
-        
+                    swap_info.gas_price = 2.1
+
         elif swap_info.from_token == TokenSymbol.STG:
             multiplier_of_value = 1.03
-            swap_info.slippage = random.randint(2, 4) / 10
+            slippage = random.randint(1, 3) / 10
 
             match self.client.account_manager.network:
                 case Networks.BSC:
                     swap_info.gas_price = 2.5
+
         else:
             multiplier_of_value = 1.02
             slippage = random.randint(2, 5) / 10
-            swap_info.slippage = (
-                slippage 
-                if not swap_info.slippage 
-                else swap_info.slippage 
-            )
 
             match self.client.account_manager.network:
                 case Networks.BSC:
                     swap_info.gas_price = 2.5
-                    
+
+        swap_info.slippage = (
+            slippage
+            if not swap_info.slippage
+            else swap_info.slippage
+        )
+
         return swap_info, multiplier_of_value
 
     async def get_data_for_crosschain_swap(
@@ -257,14 +259,12 @@ class Stargate(SwapTask):
         )
         tx_params = TxParams()
         tx_params['to'] = router_contract.address
-        
-        swap_info, multiplier = self.config_some_operations(swap_info)        
-                    
-        swap_query = await self.compute_min_destination_amount(
-            swap_query=swap_query,
-            min_to_amount=swap_query.amount_from.Wei,
-            swap_info=swap_info,
-            is_to_token_price_wei=True
+
+        swap_info, multiplier = self.config_some_operations(swap_info)
+        swap_query.min_to_amount = TokenAmount(
+            amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
+            decimals=swap_query.from_token.decimals,
+            wei=True
         )
 
         if swap_info.from_token == TokenSymbol.ETH:
