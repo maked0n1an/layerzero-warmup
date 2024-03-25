@@ -232,6 +232,12 @@ class OptimismTokenContracts(TokenContractData):
         address='0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
         decimals=6
     )
+    
+    USDT = TokenContract(
+        title=TokenSymbol.USDT,
+        address='0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',
+        decimals=6
+    )
 
     USDC_E = TokenContract(
         title=TokenSymbol.USDC_E,
