@@ -158,7 +158,7 @@ class SwapTask:
 
         if amount.Wei <= approved.Wei:
             return True
-        
+
         tx_params = self.set_all_gas_params(
             swap_info=swap_info,
             tx_params=tx_params
@@ -201,41 +201,30 @@ class SwapTask:
 
         if from_token.is_native_token:
             balance = await self.client.contract.get_balance()
+            decimals = balance.decimals
 
-            if not swap_info.amount:
-                token_amount = balance
-            else:
-                token_amount = TokenAmount(
-                    amount=swap_info.amount,
-                    decimals=self.client.account_manager.network.decimals
-                )
         else:
-            balance = await self.client.contract.get_balance(
-                token_contract=from_token
+            balance = await self.client.contract.get_balance(from_token)
+            decimals = balance.decimals
+
+        if not swap_info.amount:
+            token_amount = balance
+
+        elif swap_info.amount:
+            token_amount = TokenAmount(
+                amount=swap_info.amount,
+                decimals=decimals
             )
-            if not swap_info.amount:
+
+            if token_amount.Wei > balance.Wei:
                 token_amount = balance
-            else:
-                decimals = (
-                    from_token.decimals
-                    if from_token.decimals
-                    else await self.client.contract.get_decimals(token_contract=from_token)
-                )
 
-                token_amount = TokenAmount(
-                    amount=swap_info.amount,
-                    decimals=decimals
-                )
-
-        if swap_info.amount_by_percent:
+        elif swap_info.amount_by_percent:
             token_amount = TokenAmount(
                 amount=balance.Wei * swap_info.amount_by_percent,
-                decimals=token_amount.decimals,
+                decimals=decimals,
                 wei=True
             )
-
-        if token_amount.Wei > balance.Wei:
-            token_amount = balance
 
         return SwapQuery(
             from_token=from_token,
@@ -338,7 +327,7 @@ class SwapTask:
         print('name:', await contract.functions.name().call())
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
-        
+
     async def perform_swap(
         self,
         swap_info: SwapInfo,
