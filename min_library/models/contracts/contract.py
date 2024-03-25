@@ -187,23 +187,15 @@ class Contract:
         Returns:
             TokenAmount: The approved amount of tokens.
         """
-        spender_address = Web3.to_checksum_address(spender_address)
-
         if not owner:
             owner = self.account_manager.account.address
 
-        decimals = 0
-
-        if type(token_contract) in ParamsTypes.Address.__args__:
-            token_contract = await self.get(contract=token_contract)
-
-        else:
-            decimals = await self.get_decimals(token_contract=token_contract)
-            token_contract = await self.get_token_contract(token=token_contract)
+        token_contract = await self.get_token_contract(token=token_contract)
+        decimals = await self.get_decimals(token_contract=token_contract)
 
         amount = await token_contract.functions.allowance(
             owner,
-            spender_address,
+            Web3.to_checksum_address(spender_address),
         ).call()
 
         return TokenAmount(amount, decimals, wei=True)
@@ -355,18 +347,10 @@ class Contract:
         Returns:
             Contract | AsyncContract: The contract instance.
 
-        Example:
-        ```python
-        token_contract = await client.contract.get_token_contract(token=my_token)
-        print(token_contract)
-        # Output: <Contract object at 0x...>
-        ```
         """
         if type(token) in ParamsTypes.Address.__args__:
             address = Web3.to_checksum_address(token)
-            contract = self.account_manager.w3.eth.contract(
-                address=address, abi=DefaultAbis.Token
-            )
+            abi=DefaultAbis.Token
         else:
             address = Web3.to_checksum_address(token.address)
 
@@ -376,8 +360,8 @@ class Contract:
             else:
                 abi = DefaultAbis.Token
 
-            contract = self.account_manager.w3.eth.contract(
-                address=address, abi=abi
-            )
+        contract = self.account_manager.w3.eth.contract(
+            address=address, abi=abi
+        )
 
         return contract
