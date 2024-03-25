@@ -1,6 +1,8 @@
 from web3 import Web3
 from web3.contract import Contract, AsyncContract
-from web3.types import TxParams
+from web3.types import (
+    TxParams
+)
 from eth_typing import ChecksumAddress
 
 from min_library.models.account.account_manager import AccountManager
@@ -8,7 +10,6 @@ from min_library.models.others.dataclasses import CommonValues, DefaultAbis
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
 from min_library.models.transactions.transaction import Transaction
-from min_library.models.transactions.tx import Tx
 from min_library.models.transactions.tx_args import TxArgs
 from min_library.utils.helpers import make_request
 
@@ -129,13 +130,13 @@ class Contract:
             'to': token_contract.address,
             'data': data
         })
-        
+
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
         receipt = await tx.wait_for_tx_receipt(
             web3=self.account_manager.w3,
             timeout=240
         )
-        
+
         return tx.hash.hex() if receipt['status'] else False
 
     async def get(
@@ -350,7 +351,7 @@ class Contract:
         """
         if type(token) in ParamsTypes.Address.__args__:
             address = Web3.to_checksum_address(token)
-            abi=DefaultAbis.Token
+            abi = DefaultAbis.Token
         else:
             address = Web3.to_checksum_address(token.address)
 
