@@ -11,17 +11,20 @@ from questionary import (
 
 from min_library.models.account.account_manager import AccountInfo
 from min_library.models.logger.logger import console_logger
-from min_library.utils.config import ACCOUNT_NAMES, PRIVATE_KEYS
-from min_library.utils.helpers import delay, format_output
+from min_library.utils.config import (
+    ACCOUNT_NAMES, PRIVATE_KEYS, PROXIES, RECIPIENTS
+)
+from min_library.utils.helpers import (
+    delay, format_output
+)
 from user_data.settings.modules_settings import (
-    bridge_coredao, bridge_stargate, custom_routes, swap_pancake, swap_shadowswap
+    bridge_coredao, bridge_stargate, custom_routes, swap_shadowswap, transfer_tokens
 )
 from user_data.settings.settings import (
     IS_ACCOUNT_NAMES,
     IS_SHUFFLE_WALLETS,
     IS_SLEEP
 )
-from tasks.swap_task import SwapTask
 
 
 def greetings():
@@ -53,7 +56,9 @@ def is_bot_setuped_to_start():
     if len(PRIVATE_KEYS) != len(ACCOUNT_NAMES) and IS_ACCOUNT_NAMES:
         print(
             "The account names' amount must be equal to private keys' amount"
-        )
+        )        
+    if len(RECIPIENTS) != len(PRIVATE_KEYS):
+        print("Recipients' amount is not equal to private keys' amount")
         return end_bot
 
     return True
@@ -66,6 +71,7 @@ def get_module():
             Choice("1) Bridge via Stargate", bridge_stargate),                
             Choice("2) Bridge via CoreDAO", bridge_coredao),
             Choice("3) Swap ShadowSwap", swap_shadowswap),  
+            Choice("4) Transfer", transfer_tokens),  
             Choice("4) Custom routes", custom_routes),            
             Choice("5) Exit", "exit"),
         ],
@@ -97,6 +103,14 @@ def get_accounts():
                 private_key=key
             )
             accounts.append(account)
+            
+    if PROXIES:
+        for account, proxy in zip(accounts, PROXIES * len(accounts)):
+            account.proxy = proxy
+    
+    if RECIPIENTS:
+        for account, recipient in zip(accounts, RECIPIENTS):
+            account.recipient_address = recipient
 
     return accounts
 

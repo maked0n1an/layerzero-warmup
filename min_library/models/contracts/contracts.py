@@ -185,7 +185,8 @@ class BscTokenContracts(TokenContractData):
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi=read_json(
             path=('data', 'abis', 'layerzero', 'stargate', 'usdv_abi.json')
-        )
+        ),
+        decimals=18,
     )
 
 class CoreTokenContracts(TokenContractData):

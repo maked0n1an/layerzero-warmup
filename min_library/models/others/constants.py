@@ -35,6 +35,7 @@ class LogStatus:
     INFO = 'INFO'
     WARNING = 'WARNING'
     SUCCESS = 'SUCCESS'
+    FAILED = 'FAILED'
     ERROR = 'ERROR'
     CRITICAL = 'CRITICAL'
     

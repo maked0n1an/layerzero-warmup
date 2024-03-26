@@ -99,8 +99,10 @@ class AccountInfo:
         self,
         account_id: str | int,
         private_key: str,
-        proxy: str | None = None
+        proxy: str | None = None,
+        recepient_address: str | None = None
     ) -> None:
         self.account_id = account_id
         self.private_key = private_key
         self.proxy = proxy
+        self.recipient_address = recepient_address
