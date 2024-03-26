@@ -103,8 +103,9 @@ class CustomLogger:
 
     def log_message(self, status: str, message: str) -> None:
         caller_frame = inspect.currentframe().f_back
-        calling_line = f"{caller_frame.f_code.co_filename}:{caller_frame.f_lineno}"
-        message_with_calling_line = f"{calling_line} - {message}"
+        calling_line = f"{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}"
+
+        message_with_calling_line = f"{calling_line:<25} | {message}"
         extra = {
             "account_id": self.account_id,
             "address": self.masked_address,
@@ -152,7 +153,7 @@ class CustomAccountLogFormatter(CustomLogFormattedRecord):
 class CustomLogDataAndRecord(CustomLogFormattedRecord):
     LOG_TIME = '%(asctime)s |'
     LOG_LEVELNAME_FORMAT = ' %(levelname)-8s '
-    LOG_MESSAGE = '| %(account_id)8s | %(address)s | %(network)s - %(message)s'
+    LOG_MESSAGE = '| %(account_id)8s | %(address)s | %(network)-12s | %(message)s'
 
     RED = "\x1b[31;20m"
     GREEN = "\x1b[32;20m"
