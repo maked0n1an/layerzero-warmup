@@ -1,7 +1,6 @@
 import asyncio
 import aiohttp
 
-from eth_typing import HexStr
 from web3.types import (
     TxParams,
     TxReceipt,
@@ -53,8 +52,12 @@ class SwapTask:
     def set_all_gas_params(
         self,
         swap_info: SwapInfo,
-        tx_params: dict | TxParams
+        tx_params: dict | TxParams | None = None
     ) -> dict | TxParams:
+        
+        if not tx_params:
+            tx_params = TxParams()
+        
         if swap_info.gas_limit:
             tx_params = self.client.contract.set_gas_limit(
                 gas_limit=swap_info.gas_limit,
@@ -422,6 +425,54 @@ class SwapTask:
         )
 
         return receipt['status'], log_status, message
+
+    async def create_contract(
+        self,
+        swap_info: SwapInfo,
+        recipient_address: str
+    ) -> bool:
+        try:
+            query = await self.compute_source_token_amount(swap_info)            
+            tx_params = self.set_all_gas_params(swap_info)
+
+            receipt_status, tx_hash = await self.client.contract.transfer(
+                token_contract=query.from_token,
+                recipient_address=recipient_address,
+                token_amount=query.amount_from,
+                tx_params=tx_params
+            )
+
+            if receipt_status and tx_hash:
+                log_status = LogStatus.SUCCESS
+                message = (
+                    f'Successfully sent {query.amount_from.Ether} {swap_info.from_token}'
+                    f' to {recipient_address}'
+                )
+            elif not receipt_status and tx_hash:
+                log_status = LogStatus.FAILED
+                message = f'Failed to sent {query.amount_from.Ether} {swap_info.from_token}'
+
+            account_network = self.client.account_manager.network
+            message += (
+                f': {account_network.explorer + account_network.TxPath + tx_hash.hex()}'
+            )
+        except Exception as e:
+            exception = str(e)
+
+            log_status = LogStatus.ERROR,
+            message = (
+                f'Error while sending {query.amount_from.Ether} '
+                f'{swap_info.from_token}: {exception}'
+            )
+            receipt_status = 0
+
+        self.client.account_manager.custom_logger.log_message(
+            log_status, message
+        )
+
+        wait_time = 20 * receipt_status
+
+        return wait_time
 
     async def _get_price_from_binance(
         self,

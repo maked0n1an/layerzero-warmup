@@ -275,6 +275,37 @@ class Contract:
 
         return decimals
 
+    async def transfer(
+        self,
+        token_contract: TokenContract,
+        recipient_address: str,
+        token_amount: TokenAmount,
+        tx_params: TxParams | dict | None = None
+    ) -> tuple[bool, _Hash32]:
+        contract = await self.get(token_contract, ERC_20_ABI)
+
+        new_tx_params = TxParams(
+            to=contract.address,
+            data=contract.encodeABI(
+                fn_name='transfer',
+                args=[
+                    Web3.to_checksum_address(recipient_address),
+                    token_amount.Wei
+                ]
+            )
+        )
+
+        if tx_params:
+            for key in tx_params.keys():
+                new_tx_params[key] = tx_params[key]
+
+        tx = await self.transaction.sign_and_send(tx_params)
+        receipt = await tx.wait_for_tx_receipt(
+            web3=self.account_manager.w3
+        )
+
+        return receipt['status'], tx.hash
+
     def add_multiplier_of_gas(
         self,
         tx_params: TxParams | dict,
