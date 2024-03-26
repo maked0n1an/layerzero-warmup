@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 
+from web3 import Web3
 from web3.types import (
     TxParams,
     TxReceipt,
@@ -54,10 +55,10 @@ class SwapTask:
         swap_info: SwapInfo,
         tx_params: dict | TxParams | None = None
     ) -> dict | TxParams:
-        
+
         if not tx_params:
             tx_params = TxParams()
-        
+
         if swap_info.gas_limit:
             tx_params = self.client.contract.set_gas_limit(
                 gas_limit=swap_info.gas_limit,
@@ -117,41 +118,24 @@ class SwapTask:
         is_approve_infinity: bool = None
     ) -> str | bool:
         """
-        Approve spending of a specific amount by a spender on behalf of the owner.
+        Approve spending of a certain amount of tokens to a specified spender.
 
         Args:
-            token_contract (ParamsTypes.TokenContract): The token contract instance.
+            swap_info (SwapInfo): Information about the swap.
+            token_contract (ParamsTypes.TokenContract): The token contract to approve spending for.
             spender_address (ParamsTypes.Address): The address of the spender.
-            amount (TokenAmount | None): The amount to approve (default is None).
-            gas_price (float | None): Gas price for the transaction (default is None).
-            gas_limit (int | None): Gas limit for the transaction (default is None).
-            is_approve_infinity (bool): Whether to approve an infinite amount (default is True).
+            amount (ParamsTypes.Amount | None, optional): The amount of tokens to approve. If None, approve the full balance. Defaults to None.
+            tx_params (TxParams | dict | None, optional): Additional transaction parameters. Defaults to None.
+            is_approve_infinity (bool, optional): Whether to approve an infinite amount. Defaults to None.
 
         Returns:
-            bool: True if the approval is successful, False otherwise.
-
-        Example:
-        ```python
-        approved = await approve_interface(
-            token_contract=my_token_contract,
-            spender_address='0x123abc...',
-            amount=TokenAmount(amount=100, decimals=18),
-            gas_price=20,
-            gas_limit=50000,
-            is_approve_infinity=False
-        )
-        print(approved)
-        # Output: True
-        ```
+            Union[str, bool]: If successful, returns the transaction hash. If not, returns False.
         """
         balance = await self.client.contract.get_balance(
             token_contract=token_contract
         )
         if balance.Wei <= 0:
-            return True
-
-        if not amount or amount.Wei > balance.Wei:
-            amount = balance
+            return False
 
         approved = await self.client.contract.get_approved_amount(
             token_contract=token_contract,
@@ -161,7 +145,7 @@ class SwapTask:
 
         if amount.Wei <= approved.Wei:
             return True
-
+        
         tx_params = self.set_all_gas_params(
             swap_info=swap_info,
             tx_params=tx_params
@@ -171,7 +155,6 @@ class SwapTask:
             token_contract=token_contract,
             spender_address=spender_address,
             amount=amount,
-            tx_params=tx_params,
             is_approve_infinity=is_approve_infinity
         )
 
@@ -242,41 +225,38 @@ class SwapTask:
         is_to_token_price_wei: bool = False
     ) -> SwapQuery:
         """
-        Compute the minimum destination amount for a given swap (not works for cross-chain swaps).
+        Compute the minimum destination amount for a given swap (works for cross-chain swaps).
 
         Args:
             swap_query (SwapQuery): The query for the swap.
-            to_token_price (float): The price of the destination token.
-            slippage (int): The slippage tolerance.
+            min_to_amount (int): The minimum amount of the destination token or price of to_token.
+            swap_info (SwapInfo): Information about the swap, including network details and slippage.
+            is_to_token_price_wei (bool, optional): If True, the `min_to_amount` is in wei. Defaults to False.
 
         Returns:
             SwapQuery: The updated query with the minimum destination amount.
-
-        Example:
-        ```python
-        min_destination_query = await compute_min_destination_amount(
-            swap_query=my_swap_query,
-            to_token_price=my_token_price,
-            slippage=1
-        )
-        print(min_destination_query)
-        # Output: SwapQuery(from_token=..., to_token=..., amount_to=..., min_to_amount=...)
-        ```
         """
+        if swap_info.to_network:
+            dst_network_name = swap_info.to_network.name
+        else:
+            dst_network_name = self.client.account_manager.network.name,
+
         if not swap_query.to_token:
             swap_query.to_token = ContractsFactory.get_contract(
-                network_name=self.client.account_manager.network.name,
+                network_name=dst_network_name,
                 token_symbol=swap_info.to_token
             )
 
-        decimals = 0
-        if swap_query.to_token.is_native_token:
-            decimals = self.client.account_manager.network.decimals
-
-        else:
-            decimals = await self.client.contract.get_decimals(
+        decimals = (
+            await self.client.contract.get_decimals(
                 token_contract=swap_query.to_token
             )
+            if not swap_info.to_network
+            else await self.client.contract.get_decimals(
+                token_contract=swap_query.to_token,
+                network=swap_info.to_network
+            )
+        )
 
         min_amount_out = TokenAmount(
             amount=min_to_amount * (1 - swap_info.slippage / 100),
@@ -426,19 +406,19 @@ class SwapTask:
 
         return receipt['status'], log_status, message
 
-    async def create_contract(
+    async def transfer(
         self,
         swap_info: SwapInfo,
         recipient_address: str
     ) -> bool:
         try:
-            query = await self.compute_source_token_amount(swap_info)            
+            query = await self.compute_source_token_amount(swap_info)
             tx_params = self.set_all_gas_params(swap_info)
 
             receipt_status, tx_hash = await self.client.contract.transfer(
-                token_contract=query.from_token,
                 recipient_address=recipient_address,
                 token_amount=query.amount_from,
+                token_contract=query.from_token,
                 tx_params=tx_params
             )
 
@@ -446,7 +426,7 @@ class SwapTask:
                 log_status = LogStatus.SUCCESS
                 message = (
                     f'Successfully sent {query.amount_from.Ether} {swap_info.from_token}'
-                    f' to {recipient_address}'
+                    f' to ({recipient_address})'
                 )
             elif not receipt_status and tx_hash:
                 log_status = LogStatus.FAILED
