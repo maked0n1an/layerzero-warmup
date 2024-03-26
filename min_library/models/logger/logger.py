@@ -66,6 +66,9 @@ class CustomLogger:
             main_logger.handlers[0].setFormatter(
                 CustomLogDataAndRecord(log_format_dict['log_format'])
             )
+            
+            logging.addLevelName(403, LogStatus.FAILED)
+            logging.addLevelName(204, LogStatus.SUCCESS)
 
             logging.addLevelName(210, LogStatus.APPROVED)
             logging.addLevelName(201, LogStatus.MINTED)
@@ -167,6 +170,7 @@ class CustomLogDataAndRecord(CustomLogFormattedRecord):
         LogStatus.WARNING: YELLOW + LOG_LEVELNAME_FORMAT + RESET,
         LogStatus.SUCCESS: SUCCESS_FORMAT,
         LogStatus.ERROR: RED + LOG_LEVELNAME_FORMAT + RESET,
+        LogStatus.FAILED: RED + LOG_LEVELNAME_FORMAT + RESET,
 
         LogStatus.APPROVED: SUCCESS_FORMAT,
         LogStatus.MINTED: SUCCESS_FORMAT,

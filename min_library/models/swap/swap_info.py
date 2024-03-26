@@ -8,7 +8,7 @@ class SwapInfo:
     def __init__(
         self,
         from_token: str,
-        to_token: str,
+        to_token: str = None,
         slippage: float = 0.5,
         from_network: Network = Networks.Goerli,
         to_network: Network | None = None,

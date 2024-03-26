@@ -21,7 +21,7 @@ from tasks.swap_task import SwapTask
 
 
 class Stargate(SwapTask):
-    async def crosschain_swap(
+    async def bridge(
         self,
         swap_info: SwapInfo,
         max_fee: float = 0.7,
@@ -166,28 +166,13 @@ class Stargate(SwapTask):
 
         return wait_time if receipt_status else False
 
-    def get_wait_time(self) -> int:
-        match self.client.account_manager.network.name:
-            case Networks.Arbitrum.name:
-                wait_time = (0.9 * 60, 2 * 60)
-            case Networks.Avalanche.name:
-                wait_time = (1 * 60, 2.5 * 60)
-            case Networks.BSC.name:
-                wait_time = (1 * 60, 2.5 * 60)
-            case Networks.Optimism.name:
-                wait_time = (1 * 60, 2.3 * 60)
-            case Networks.Polygon.name:
-                wait_time = (22 * 60, 24 * 60)
-
-        return random.randint(int(wait_time[0]), int(wait_time[1]))
-
     def config_some_operations(
         self,
         swap_info: SwapInfo
     ) -> Union[SwapInfo, float]:
         if swap_info.from_token == TokenSymbol.ETH:
             multiplier_of_value = 1.03
-            swap_info.slippage = random.randint(1, 3) / 10
+            swap_info.slippage = random.randint(2, 4) / 10
 
         elif (
             swap_info.from_token == TokenSymbol.USDV
@@ -205,11 +190,11 @@ class Stargate(SwapTask):
             and swap_info.to_token == TokenSymbol.USDV
         ):
             multiplier_of_value = 1.01
-            slippage = random.randint(1, 2) / 10
+            slippage = random.randint(3, 5) / 10
 
-            match self.client.account_manager.network:
-                case Networks.BSC:
-                    swap_info.gas_price = 2.1
+            # match self.client.account_manager.network:
+            #     case Networks.BSC:
+            #         swap_info.gas_price = 2
 
         elif swap_info.from_token == TokenSymbol.STG:
             multiplier_of_value = 1.03
@@ -221,7 +206,7 @@ class Stargate(SwapTask):
 
         else:
             multiplier_of_value = 1.02
-            slippage = random.randint(2, 5) / 10
+            slippage = random.randint(3, 5) / 10
 
             match self.client.account_manager.network:
                 case Networks.BSC:
@@ -229,11 +214,26 @@ class Stargate(SwapTask):
 
         swap_info.slippage = (
             slippage
-            if not swap_info.slippage
+            if not swap_info.slippage or swap_info.slippage == 0.5
             else swap_info.slippage
         )
 
         return swap_info, multiplier_of_value
+
+    def get_wait_time(self) -> int:
+        match self.client.account_manager.network.name:
+            case Networks.Arbitrum.name:
+                wait_time = (0.9 * 60, 2 * 60)
+            case Networks.Avalanche.name:
+                wait_time = (1.5 * 60, 2.5 * 60)
+            case Networks.BSC.name:
+                wait_time = (2 * 60, 2.5 * 60)
+            case Networks.Optimism.name:
+                wait_time = (1.5 * 60, 2.3 * 60)
+            case Networks.Polygon.name:
+                wait_time = (22 * 60, 24 * 60)
+
+        return random.randint(int(wait_time[0]), int(wait_time[1]))
 
     async def get_data_for_crosschain_swap(
         self,
@@ -261,10 +261,11 @@ class Stargate(SwapTask):
         tx_params['to'] = router_contract.address
 
         swap_info, multiplier = self.config_some_operations(swap_info)
-        swap_query.min_to_amount = TokenAmount(
-            amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
-            decimals=swap_query.from_token.decimals,
-            wei=True
+        swap_query = await self.compute_min_destination_amount(
+            swap_query=swap_query,
+            min_to_amount=swap_query.amount_from.Wei,
+            swap_info=swap_info,
+            is_to_token_price_wei=True
         )
 
         if swap_info.from_token == TokenSymbol.ETH:
