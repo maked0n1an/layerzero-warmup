@@ -1,11 +1,14 @@
 from web3 import Web3
 from web3.contract import Contract, AsyncContract
 from web3.types import (
-    TxParams
+    TxParams,
+    _Hash32,
 )
 from eth_typing import ChecksumAddress
 
 from min_library.models.account.account_manager import AccountManager
+from min_library.models.contracts.raw_contract import TokenContract
+from min_library.models.others.constants import LogStatus
 from min_library.models.others.dataclasses import CommonValues, DefaultAbis
 from min_library.models.others.params_types import ParamsTypes
 from min_library.models.others.token_amount import TokenAmount
@@ -113,23 +116,14 @@ class Contract:
                 amount=token_amount
             ).get_tuple())
 
-        if tx_params:
-            new_tx_params = {}
-            if 'gas' in tx_params:
-                new_tx_params['gas'] = tx_params['gas']
-            if 'gasPrice' in tx_params:
-                new_tx_params['gasPrice'] = tx_params['gasPrice']
-            if 'multiplier' in tx_params:
-                new_tx_params['multiplier'] = tx_params['multiplier']
-            if 'maxPriorityFeePerGas' in tx_params:
-                new_tx_params['maxPriorityFeePerGas'] = (
-                    tx_params['maxPriorityFeePerGas']
-                )
-
-        new_tx_params.update({
+        new_tx_params = {
             'to': token_contract.address,
             'data': data
-        })
+        }
+
+        if tx_params:
+            for key in tx_params.keys():
+                new_tx_params[key] = tx_params[key]
 
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
         receipt = await tx.wait_for_tx_receipt(
@@ -277,29 +271,37 @@ class Contract:
 
     async def transfer(
         self,
-        token_contract: TokenContract,
         recipient_address: str,
         token_amount: TokenAmount,
+        token_contract: TokenContract | None = None,
         tx_params: TxParams | dict | None = None
     ) -> tuple[bool, _Hash32]:
-        contract = await self.get(token_contract, ERC_20_ABI)
+        contract = await self.get_token_contract(token_contract)
 
-        new_tx_params = TxParams(
-            to=contract.address,
-            data=contract.encodeABI(
-                fn_name='transfer',
-                args=[
-                    Web3.to_checksum_address(recipient_address),
-                    token_amount.Wei
-                ]
+        if token_contract.is_native_token:
+            new_tx_params = TxParams(
+                to=Web3.to_checksum_address(recipient_address),
+                value=token_amount.Wei
             )
-        )
+
+        else:
+            new_tx_params = TxParams(
+                to=contract.address,
+                data=contract.encodeABI(
+                    fn_name='transfer',
+                    args=[
+                        Web3.to_checksum_address(recipient_address),
+                        token_amount.Wei
+                    ]
+                ),
+                value=0
+            )
 
         if tx_params:
             for key in tx_params.keys():
                 new_tx_params[key] = tx_params[key]
 
-        tx = await self.transaction.sign_and_send(tx_params)
+        tx = await self.transaction.sign_and_send(new_tx_params)
         receipt = await tx.wait_for_tx_receipt(
             web3=self.account_manager.w3
         )
