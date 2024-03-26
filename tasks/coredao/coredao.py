@@ -1,11 +1,14 @@
 import random
+
+from web3 import Web3
+from web3.eth import AsyncEth
 from web3.types import TxParams
+
 from min_library.models.bridges.bridge_data import TokenBridgeInfo
 from min_library.models.contracts.contracts import TokenContractData
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus
 from min_library.models.others.token_amount import TokenAmount
-
 from min_library.models.swap.swap_info import SwapInfo
 from min_library.models.swap.swap_query import SwapQuery
 from min_library.models.transactions.tx_args import TxArgs
@@ -21,7 +24,7 @@ class CoreDaoBridge(SwapTask):
     ) -> str:
         account_network = self.client.account_manager.network.name
         swap_info.slippage = 0
-        
+
         check_message = self.validate_swap_inputs(
             first_arg=account_network,
             second_arg=swap_info.to_network.name,
@@ -33,14 +36,6 @@ class CoreDaoBridge(SwapTask):
             )
 
             return False
-        
-        if account_network == Networks.Core:
-            sleep_time = random.randint(200, 250)
-            
-            await self.client.step_delay(
-                sleep_time=sleep_time, 
-                message=f'Waiting for some CORE from {__class__.__name__} for any next operations'
-            )
 
         src_bridge_data = CoredaoData.get_token_bridge_info(
             network_name=account_network,
@@ -129,7 +124,7 @@ class CoreDaoBridge(SwapTask):
                     status=LogStatus.ERROR, message=error
                 )
 
-        wait_time = self.get_wait_time()
+        wait_time = await self.get_wait_time()
 
         return wait_time if receipt_status else False
 
@@ -140,10 +135,35 @@ class CoreDaoBridge(SwapTask):
 
         return swap_info
 
-    def get_wait_time(self) -> int:
+    async def get_wait_time(self) -> int:
         match self.client.account_manager.network.name:
             case Networks.BSC.name:
-                wait_time = (1 * 60, 2.5 * 60)
+                w3 = Web3(
+                    Web3.AsyncHTTPProvider(
+                        endpoint_uri=Networks.Core.rpc,
+                        # request_kwargs={'proxy': self.clientproxy,
+                        #                 'headers': self.headers}
+                    ),
+                    modules={'eth': (AsyncEth,)},
+                    middlewares=[]
+                )
+
+                balance = await w3.eth.get_balance(
+                    account=self.client.account_manager.account.address
+                )
+
+                if not balance:
+                    wait_time = (4 * 60, 5 * 60)
+
+                    self.client.account_manager.custom_logger.log_message(
+                        status=LogStatus.INFO,
+                        message=(
+                            f'Waiting for {wait_time} secs to get some CORE '
+                            f'from {__class__.__name__} for any next operations'
+                        )
+                    )
+                else:
+                    wait_time = (1.5 * 60, 2.2 * 60)
             case Networks.Core.name:
                 wait_time = (1 * 60, 3 * 60)
 
@@ -179,7 +199,11 @@ class CoreDaoBridge(SwapTask):
                     '0x'
                 ).call()
 
-                fee = TokenAmount(amount=result[0], wei=True)
+                fee = TokenAmount(
+                    amount=result[0],
+                    decimals=self.client.account_manager.network.decimals,
+                    wei=True
+                )
                 multiplier = 1.01
 
             case Networks.Core:
