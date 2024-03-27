@@ -239,7 +239,7 @@ class SwapTask:
         if swap_info.to_network:
             dst_network_name = swap_info.to_network.name
         else:
-            dst_network_name = self.client.account_manager.network.name,
+            dst_network_name = self.client.account_manager.network.name
 
         if not swap_query.to_token:
             swap_query.to_token = ContractsFactory.get_contract(
