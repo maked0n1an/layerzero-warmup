@@ -146,11 +146,11 @@ class CoreDaoBridge(SwapTask):
             case Networks.Arbitrum.name:
                 wait_time = (1.6 * 60, 2.3 * 60)
             case Networks.Avalanche.name:
-                wait_time = (1.5 * 60, 2.5 * 60)
+                wait_time = (2 * 60, 2.5 * 60)
             case Networks.BSC.name:
                 wait_time = (2 * 60, 2.5 * 60)
             case Networks.Core.name:
-                wait_time = (1 * 60, 3 * 60)
+                wait_time = (2 * 60, 3 * 60)
             case Networks.Polygon.name:
                 wait_time = (22 * 60, 24 * 60)
 

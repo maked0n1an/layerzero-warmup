@@ -8,15 +8,18 @@ import web3.exceptions as web3_exceptions
 
 from min_library.models.contracts.contracts import CoreTokenContracts
 from min_library.models.contracts.raw_contract import RawContract
+from min_library.models.networks.network import Network
 from min_library.models.networks.networks import Networks
 from min_library.models.others.constants import LogStatus, TokenSymbol
 from min_library.models.others.params_types import ParamsTypes
+from min_library.models.others.token_amount import TokenAmount
 from min_library.models.swap.swap_info import SwapInfo
 from min_library.models.swap.swap_query import SwapQuery
 from min_library.models.swap.tx_payload_details import TxPayloadDetails
 from min_library.models.swap.tx_payload_details_fetcher import TxPayloadDetailsFetcher
 from min_library.models.transactions.tx_args import TxArgs
 from min_library.utils.helpers import read_json, sleep
+from tasks.coredao.coredao_data import CoredaoData
 from tasks.swap_task import SwapTask
 
 
@@ -33,7 +36,8 @@ class ShadowSwap(SwapTask):
 
     async def swap(
         self,
-        swap_info: SwapInfo
+        swap_info: SwapInfo,
+        network_to_check_fee_for_bridge_back: Network = Networks.BSC
     ) -> bool:
         check_message = self.validate_swap_inputs(
             first_arg=swap_info.from_token,
@@ -54,30 +58,18 @@ class ShadowSwap(SwapTask):
             first_token=swap_info.from_token,
             second_token=swap_info.to_token
         )
-
-        # fee = await self.get_fee_for_bridge(swap_info)
-        # fee = 1.54
-        # balance = await self.client.contract.get_balance()
-        # token_price = await self.get_binance_ticker_price(TokenSymbol.CORE)
-
-        # if balance.Ether > fee:
-        #     self.client.account_manager.custom_logger.log_message(
-        #         status=LogStatus.INFO, message='The account has enough native to do bridges'
-        #     )
-
-        #     return False
-
-        # else:
-        #     native_needed_for_swap = Decimal(str(fee)) - balance.Ether
-        #     swap_info.amount = float(str(native_needed_for_swap)) * 0.75
-            
-        #     self.client.account_manager.custom_logger.log_message(
-        #         status=LogStatus.INFO,
-        #         message=(
-        #             f'The account need to swap {swap_info.amount} '
-        #             f'{swap_info.from_token} to have enough native to bridge back'
-        #         )
-        #     )            
+        
+        fee = await self.get_fee_for_bridge_back(
+            to_network_name=network_to_check_fee_for_bridge_back.name,
+            from_token=swap_info.from_token
+        )
+        
+        if not swap_info.amount:
+            balance = await self.client.contract.get_balance()
+            if balance.Ether >= fee.Ether:
+                return 1
+            else:
+                swap_info.amount = float(str(fee.Ether - balance.Ether)) + 0.1
 
         swap_query = await self._create_swap_query(
             contract=contract,
@@ -157,6 +149,37 @@ class ShadowSwap(SwapTask):
                 wait_time = (0.4 * 60, 1 * 60)
 
         return random.randint(int(wait_time[0]), int(wait_time[1]))
+
+    async def get_fee_for_bridge_back(
+        self,
+        from_token: str,
+        to_network_name: str
+    ) -> TokenAmount:
+        src_bridge_data = CoredaoData.get_token_bridge_info(
+            network_name=Networks.Core.name,
+            token_symbol=from_token
+        )        
+        dst_chain_id = CoredaoData.get_chain_id(to_network_name)
+        w3 = self.client.contract.get_web3_with_network(Networks.Core)
+        
+        contract = w3.eth.contract(
+            address=src_bridge_data.bridge_contract.address,
+            abi=src_bridge_data.bridge_contract.abi
+        )
+
+        result = await contract.functions.estimateBridgeFee(
+            dst_chain_id,
+            False,
+            '0x'
+        ).call()
+        
+        fee = TokenAmount(
+            amount=result[0],
+            decimals=Networks.Core.decimals,
+            wei=True
+        )
+        
+        return fee
 
     async def _create_swap_query(
         self,

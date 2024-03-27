@@ -52,7 +52,12 @@ class Networks(metaclass=Singleton):
 
     BSC = Network(
         name='bsc',
-        rpc='https://rpc.ankr.com/bsc/',
+        rpc=[
+            'https://rpc.ankr.com/bsc/0ea9694513176ac3ac87e9a5c9c16663b119804f6b8283f923c62c923a98b644',
+            'https://rpc.ankr.com/bsc/84b4a7faad0df9bf76db0aca528ff21d1c5457d37af0445bf806df3a8de9a062',
+            'https://rpc.ankr.com/bsc/00e8ed9715664ae8868453878715c9e3c8a15193b1b02df6e65e722d999536aa',
+            'https://rpc.ankr.com/bsc/f4e57e2e7cefa90226b56cea4c994115927c8cf3dc044a65ef694045d139939d'
+        ],
         chain_id=56,
         tx_type=0,
         coin_symbol=TokenSymbol.BNB,
@@ -69,7 +74,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://celoscan.io',
     )
-    
+
     Core = Network(
         name='core',
         rpc='https://1rpc.io/core',
@@ -89,7 +94,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://ftmscan.com',
     )
-    
+
     Gnosis = Network(
         name='gnosis',
         rpc='https://rpc.ankr.com/gnosis',
@@ -109,7 +114,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://www.hecoinfo.com/en-us',
     )
-    
+
     Kava = Network(
         name='kava',
         rpc="https://rpc.ankr.com/kava_evm",
@@ -139,7 +144,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://optimistic.etherscan.io',
     )
-    
+
     Opbnb = Network(
         name="op_bnb",
         rpc=[
@@ -151,7 +156,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer="https://mainnet.opbnbscan.com"
     )
-    
+
     Polygon = Network(
         name='polygon',
         rpc='https://rpc.ankr.com/polygon/',
@@ -182,7 +187,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://sepolia.etherscan.io',
     )
-    
+
     ZkSync = Network(
         name='zksync',
         rpc='https://multi-convincing-dust.zksync-mainnet.quiknode.pro/c94ba40682080821bbc8b4dd7ba7360329948422/',
@@ -192,10 +197,10 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://explorer.zksync.io/'
     )
-    
+
     @classmethod
     def get_network(
-        cls, 
+        cls,
         network_name: str,
     ) -> Network:
         network_name = network_name.capitalize()
