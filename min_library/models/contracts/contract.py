@@ -125,7 +125,8 @@ class Contract:
 
         approve_tx_params = {}
         if tx_params:
-            approve_tx_params = self.get_custom_settings_for_tx_params(tx_params)
+            approve_tx_params = self.get_custom_settings_for_tx_params(
+                tx_params)
 
         approve_tx_params.update({
             'to': token_contract.address,
@@ -281,7 +282,7 @@ class Contract:
     async def get_decimals(
         self,
         token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract,
-        network: Network | None = None
+        network: Network = None
     ) -> int:
         """
         Get the number of decimals for the given token contract.
@@ -300,17 +301,7 @@ class Contract:
             w3 = self.account_manager.w3
 
         else:
-            w3 = Web3(
-                Web3.AsyncHTTPProvider(
-                    endpoint_uri=network.rpc,
-                    request_kwargs={
-                        'proxy': self.account_manager.proxy,
-                        'headers': self.account_manager.headers
-                    }
-                ),
-                modules={'eth': (AsyncEth,)},
-                middlewares=[]
-            )
+            w3 = self.get_web3_with_network(network)
 
         if type(token_contract) in ParamsTypes.TokenContract.__args__:
             if not token_contract.decimals:
@@ -439,6 +430,19 @@ class Contract:
             )
         tx_params['gas'] = gas_limit.Wei
         return tx_params
+
+    def get_web3_with_network(self, network: Network) -> Web3:        
+        return Web3(
+            Web3.AsyncHTTPProvider(
+                endpoint_uri=network.rpc,
+                request_kwargs={
+                    'proxy': self.account_manager.proxy,
+                    'headers': self.account_manager.headers
+                }
+            ),
+            modules={'eth': (AsyncEth,)},
+            middlewares=[]
+        )
 
     def get_custom_settings_for_tx_params(
         self,

@@ -74,15 +74,14 @@ class NetworkDataFetcher:
         network_name: str
     ) -> NetworkData:
         network_name = network_name.lower()
-        networks_data = cls.networks_data
 
-        if network_name not in networks_data:
+        if network_name not in cls.networks_data:
             raise exceptions.NetworkNotAdded(
                 f"The '{network_name.capitalize()}' network has not been "
                 f"added to {cls.__name__} networks dict"
             )
 
-        network_data = networks_data[network_name]
+        network_data = cls.networks_data[network_name]
 
         return network_data
 
