@@ -30,43 +30,23 @@ class CustomLogger:
         relative_path = Path(cls.FOLDER_NAME)
         relative_path.mkdir(parents=True, exist_ok=True)
 
-    def get_logging_format(self) -> dict:
-        log_format_dict = {
-            'log_format': (
-                CustomLogDataAndRecord.LOG_TIME
-                + CustomLogDataAndRecord.LOG_LEVELNAME_FORMAT
-                + CustomLogDataAndRecord.LOG_MESSAGE
-            ),
-            'datafmt': '%Y-%m-%d %H:%M:%S'
-        }
-
-        return log_format_dict
-
     def _initialize_main_log(self) -> logging.Logger:
         if 'main_logger' not in self.LOGGERS:
-            main_logger = logging.getLogger("main")
+            name_of_file = "main"
+
+            main_logger = logging.getLogger(name_of_file)
             main_logger.setLevel(logging.DEBUG)
-            log_format_dict = self.get_logging_format()
 
             console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setLevel(logging.INFO)
-            console_handler.setFormatter(logging.Formatter(
-                log_format_dict['log_format'],
-                datefmt=log_format_dict['datafmt']
-            ))
+            console_handler.setFormatter(MainConsoleLogFormatter())
             main_logger.addHandler(console_handler)
 
-            file_handler = logging.FileHandler(f"main.log")
+            file_handler = logging.FileHandler(f"{name_of_file}.log")
             file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(logging.Formatter(
-                log_format_dict['log_format'],
-                datefmt=log_format_dict['datafmt']
-            ))
+            file_handler.setFormatter(MainFileLogFormatter())
             main_logger.addHandler(file_handler)
-            main_logger.handlers[0].setFormatter(
-                CustomLogDataAndRecord(log_format_dict['log_format'])
-            )
-            
+
             logging.addLevelName(403, LogStatus.FAILED)
             logging.addLevelName(204, LogStatus.SUCCESS)
 
@@ -81,20 +61,12 @@ class CustomLogger:
 
     def _initialize_account_log(self, account_id: str) -> logging.Logger:
         if account_id not in self.LOGGERS:
-            wallet_logger = logging.getLogger(
-                f'{self.FOLDER_NAME}/log_{account_id}'
-            )
-            wallet_logger.setLevel(logging.DEBUG)
-            log_format_dict = self.get_logging_format()
+            name_of_file = f'{self.FOLDER_NAME}/log_{account_id}'
 
-            file_handler = logging.FileHandler(
-                f"{self.FOLDER_NAME}/log_{account_id}.log"
-            )
+            wallet_logger = logging.getLogger(name_of_file)
+            file_handler = logging.FileHandler(f"{name_of_file}.log")
             file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(CustomAccountLogFormatter(
-                log_format_dict['log_format'],
-                datefmt=log_format_dict['datafmt']
-            ))
+            file_handler.setFormatter(AccountFileLogFormatter())
             wallet_logger.addHandler(file_handler)
 
             self.LOGGERS[account_id] = wallet_logger
@@ -128,32 +100,13 @@ class CustomLogger:
             )
 
 
-class CustomLogFormattedRecord(logging.Formatter):
-    def __init__(self, *args, **kwargs):
-        self.root_folder = os.getcwd()
-        super().__init__(*args, **kwargs)
+class CustomLogData(logging.Formatter):
+    TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-    def format_message(self, record: logging.LogRecord) -> logging.LogRecord:
-        pathname_with_msg = record.msg
-        if pathname_with_msg.startswith(self.root_folder):
-            pathname_with_msg = os.path.relpath(
-                pathname_with_msg, self.root_folder
-            )
-        record.msg = pathname_with_msg
-        return record
-
-
-class CustomAccountLogFormatter(CustomLogFormattedRecord):
-    def format(self, record):
-        record = self.format_message(record)
-
-        return super().format(record)
-
-
-class CustomLogDataAndRecord(CustomLogFormattedRecord):
-    LOG_TIME = '%(asctime)s |'
+    LOG_TIME_FORMAT = '%(asctime)s |'
     LOG_LEVELNAME_FORMAT = ' %(levelname)-8s '
-    LOG_MESSAGE = '| %(account_id)8s | %(address)s | %(network)-12s | %(message)s'
+    LOG_MESSAGE_FORMAT = '| %(account_id)8s | %(address)s | %(network)-12s | %(message)s'
+    LOG_MESSAGE_FORMAT_SHORT = '| %(message)s '
 
     RED = "\x1b[31;20m"
     GREEN = "\x1b[32;20m"
@@ -179,16 +132,92 @@ class CustomLogDataAndRecord(CustomLogFormattedRecord):
         LogStatus.SWAPPED: SUCCESS_FORMAT
     }
 
-    def format(self, record):
-        record = self.format_message(record)
+    def __init__(self, *args, **kwargs):
+        self.root_folder = os.getcwd()
+        super().__init__(*args, **kwargs)
 
+
+class SettingsLogFormatter(CustomLogData):
+    def __init__(
+        self,
+        log_levelname_format: str | dict,
+        log_message_format: str,
+    ) -> logging.Formatter:
+        super().__init__()
+        self.log_levelname_format = log_levelname_format
+        self.log_message_format = log_message_format
+
+    def format(self, record):
         levelname = record.levelname
+        if isinstance(self.log_levelname_format, dict):
+            log_levelname_format = self.log_levelname_format[levelname]
+        else:
+            log_levelname_format = self.log_levelname_format
+
         if levelname in self.FORMATS:
-            formatted_message = self.LOG_TIME + \
-                self.FORMATS[levelname] + self.LOG_MESSAGE
-            formatter = logging.Formatter(formatted_message)
+            formatted_message = self.LOG_TIME_FORMAT + \
+                log_levelname_format + self.log_message_format
+            formatter = logging.Formatter(
+                formatted_message,
+                datefmt=self.TIME_FORMAT
+            )
 
         return formatter.format(record)
+
+
+class MainConsoleLogFormatter(SettingsLogFormatter):
+    def __init__(self):
+        super().__init__(
+            self.FORMATS,
+            self.LOG_MESSAGE_FORMAT,
+        )
+
+    def format(self, record):
+        return super().format(record)
+
+
+class MainFileLogFormatter(SettingsLogFormatter):
+    def __init__(self):
+        super().__init__(
+            self.LOG_LEVELNAME_FORMAT,
+            self.LOG_MESSAGE_FORMAT,
+        )
+
+    def format(self, record):
+        return super().format(record)
+
+
+class AccountFileLogFormatter(SettingsLogFormatter):
+    def __init__(self):
+        super().__init__(
+            self.LOG_LEVELNAME_FORMAT,
+            self.LOG_MESSAGE_FORMAT,
+        )
+
+    def format(self, record):
+        return super().format(record)
+
+
+class CommonConsoleLogFormatter(SettingsLogFormatter):
+    def __init__(self):
+        super().__init__(
+            self.FORMATS,
+            self.LOG_MESSAGE_FORMAT_SHORT,
+        )
+
+    def format(self, record):
+        return super().format(record)
+
+
+class CommonConsoleFileLogFormatter(SettingsLogFormatter):
+    def __init__(self):
+        super().__init__(
+            self.LOG_LEVELNAME_FORMAT,
+            self.LOG_MESSAGE_FORMAT_SHORT,
+        )
+
+    def format(self, record):
+        return super().format(record)
 
 
 class ConsoleLoggerSingleton:
@@ -199,11 +228,13 @@ class ConsoleLoggerSingleton:
         if ConsoleLoggerSingleton._instance is None:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.INFO)
-            formatter = logging.Formatter(
-                '%(asctime)s | %(levelname)-8s | %(message)s')
 
             console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
+            console_handler.setFormatter(CommonConsoleLogFormatter())
+            logger.addHandler(console_handler)
+
+            console_handler = logging.FileHandler("main.log")
+            console_handler.setFormatter(CommonConsoleFileLogFormatter())
             logger.addHandler(console_handler)
             ConsoleLoggerSingleton._instance = logger
 
