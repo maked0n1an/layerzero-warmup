@@ -23,5 +23,21 @@ class CoredaoData(NetworkDataFetcher):
                     bridge_contract=CoreDaoBridgeContracts.CORE
                 )
             }
+        ),
+        Networks.Polygon.name: NetworkData(
+            chain_id=109,
+            bridge_dict={
+                TokenSymbol.USDT: TokenBridgeInfo(
+                    bridge_contract=CoreDaoBridgeContracts.POLYGON
+                )
+            }
+        ),
+        Networks.Arbitrum.name: NetworkData(
+            chain_id=110,
+            bridge_dict={
+                TokenSymbol.USDT: TokenBridgeInfo(
+                    bridge_contract=CoreDaoBridgeContracts.ARBITRUM
+                )
+            }
         )
     }

@@ -18,6 +18,12 @@ from tasks.coredao.coredao_data import CoredaoData
 
 
 class CoreDaoBridge(SwapTask):
+    TO_CORE_NETWORKS = [
+        Networks.BSC,
+        Networks.Polygon,
+        Networks.Arbitrum
+    ]
+
     async def bridge(
         self,
         swap_info: SwapInfo
@@ -49,7 +55,7 @@ class CoreDaoBridge(SwapTask):
             amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
             decimals=swap_query.from_token.decimals,
             wei=True
-        )
+        ) # check here
 
         prepared_tx_params = await self._prepare_params(
             src_bridge_data, swap_query, swap_info
@@ -137,35 +143,41 @@ class CoreDaoBridge(SwapTask):
 
     async def get_wait_time(self) -> int:
         match self.client.account_manager.network.name:
+            case Networks.Arbitrum.name:
+                wait_time = (1.6 * 60, 2.3 * 60)
+            case Networks.Avalanche.name:
+                wait_time = (1.5 * 60, 2.5 * 60)
             case Networks.BSC.name:
-                w3 = Web3(
-                    Web3.AsyncHTTPProvider(
-                        endpoint_uri=Networks.Core.rpc,
-                        # request_kwargs={'proxy': self.clientproxy,
-                        #                 'headers': self.headers}
-                    ),
-                    modules={'eth': (AsyncEth,)},
-                    middlewares=[]
-                )
-
-                balance = await w3.eth.get_balance(
-                    account=self.client.account_manager.account.address
-                )
-
-                if not balance:
-                    wait_time = (4 * 60, 5 * 60)
-
-                    self.client.account_manager.custom_logger.log_message(
-                        status=LogStatus.INFO,
-                        message=(
-                            f'Waiting for {wait_time} secs to get some CORE '
-                            f'from {__class__.__name__} for any next operations'
-                        )
-                    )
-                else:
-                    wait_time = (1.5 * 60, 2.2 * 60)
+                wait_time = (2 * 60, 2.5 * 60)
             case Networks.Core.name:
                 wait_time = (1 * 60, 3 * 60)
+            case Networks.Polygon.name:
+                wait_time = (22 * 60, 24 * 60)
+
+        if self.client.account_manager.network in self.TO_CORE_NETWORKS:
+            w3 = self.client.contract.get_web3_with_network(
+                network=self.client.account_manager.network
+            )
+
+            balance = await w3.eth.get_balance(
+                account=self.client.account_manager.account.address
+            )
+
+            if not balance:
+                waiting_for_native_time = (4 * 60, 6 * 60)
+
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.INFO,
+                    message=(
+                        f'Waiting for {waiting_for_native_time} secs to get some CORE '
+                        f'from {__class__.__name__} for any next operations'
+                    )
+                )
+                wait_time = (
+                    waiting_for_native_time
+                    if waiting_for_native_time > wait_time
+                    else wait_time
+                )
 
         return random.randint(int(wait_time[0]), int(wait_time[1]))
 
@@ -179,61 +191,60 @@ class CoreDaoBridge(SwapTask):
             contract=src_bridge_data.bridge_contract
         )
 
-        match self.client.account_manager.network:
-            case Networks.BSC:
-                callParams = TxArgs(
-                    refundAddress=self.client.account_manager.account.address,
-                    zroPaymentAddress=TokenContractData.ZERO_ADDRESS
-                )
+        if self.client.account_manager.network in self.TO_CORE_NETWORKS:
+            callParams = TxArgs(
+                refundAddress=self.client.account_manager.account.address,
+                zroPaymentAddress=TokenContractData.ZERO_ADDRESS
+            )
 
-                args = TxArgs(
-                    token=swap_query.from_token.address,
-                    amountLd=swap_query.amount_from.Wei,
-                    to=self.client.account_manager.account.address,
-                    callParams=callParams.get_tuple(),
-                    adapterParams='0x'
-                )
+            args = TxArgs(
+                token=swap_query.from_token.address,
+                amountLd=swap_query.amount_from.Wei,
+                to=self.client.account_manager.account.address,
+                callParams=callParams.get_tuple(),
+                adapterParams='0x'
+            )
 
-                result = await contract.functions.estimateBridgeFee(
-                    False,
-                    '0x'
-                ).call()
+            result = await contract.functions.estimateBridgeFee(
+                False,
+                '0x'
+            ).call()
 
-                fee = TokenAmount(
-                    amount=result[0],
-                    decimals=self.client.account_manager.network.decimals,
-                    wei=True
-                )
-                multiplier = 1.01
+            fee = TokenAmount(
+                amount=result[0],
+                decimals=self.client.account_manager.network.decimals,
+                wei=True
+            )
+            multiplier = 1.01
 
-            case Networks.Core:
-                callParams = TxArgs(
-                    refundAddress=self.client.account_manager.account.address,
-                    zroPaymentAddress=TokenContractData.ZERO_ADDRESS
-                )
+        elif self.client.account_manager.network == Networks.Core:
+            callParams = TxArgs(
+                refundAddress=self.client.account_manager.account.address,
+                zroPaymentAddress=TokenContractData.ZERO_ADDRESS
+            )
 
-                chain_id = CoredaoData.get_chain_id(
-                    network_name=swap_info.to_network.name
-                )
+            chain_id = CoredaoData.get_chain_id(
+                network_name=swap_info.to_network.name
+            )
 
-                args = TxArgs(
-                    localToken=swap_query.from_token.address,
-                    remoteChainId=chain_id,
-                    amount=swap_query.amount_from.Wei,
-                    to=self.client.account_manager.account.address,
-                    unwrapWeth=False,
-                    callParams=callParams.get_tuple(),
-                    adapterParams='0x'
-                )
+            args = TxArgs(
+                localToken=swap_query.from_token.address,
+                remoteChainId=chain_id,
+                amount=swap_query.amount_from.Wei,
+                to=self.client.account_manager.account.address,
+                unwrapWeth=False,
+                callParams=callParams.get_tuple(),
+                adapterParams='0x'
+            )
 
-                result = await contract.functions.estimateBridgeFee(
-                    chain_id,
-                    False,
-                    '0x'
-                ).call()
+            result = await contract.functions.estimateBridgeFee(
+                chain_id,
+                False,
+                '0x'
+            ).call()
 
-                fee = TokenAmount(amount=result[0], wei=True)
-                multiplier = 1.01
+            fee = TokenAmount(amount=result[0], wei=True)
+            multiplier = 1.01
 
         fee.Wei = int(fee.Wei * multiplier)
 
