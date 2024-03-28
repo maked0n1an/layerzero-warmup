@@ -42,83 +42,87 @@ class CoreDaoBridge(SwapTask):
             )
 
             return False
-
-        src_bridge_data = CoredaoData.get_token_bridge_info(
-            network_name=account_network,
-            token_symbol=swap_info.from_token
-        )
-
-        swap_query = await self.compute_source_token_amount(
-            swap_info=swap_info
-        )
-        swap_query.min_to_amount = TokenAmount(
-            amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
-            decimals=swap_query.from_token.decimals,
-            wei=True
-        ) # check here
-
-        prepared_tx_params = await self._prepare_params(
-            src_bridge_data, swap_query, swap_info
-        )
-
-        if not prepared_tx_params['value']:
-            message = f'Can not get value for ({account_network.upper()})'
-
-            self.client.account_manager.custom_logger.log_message(
-                status=LogStatus.ERROR, message=message
-            )
-
-            return False
-
-        native_balance = await self.client.contract.get_balance()
-        value = TokenAmount(
-            amount=prepared_tx_params['value'],
-            decimals=self.client.account_manager.network.decimals,
-            wei=True
-        )
-
-        if native_balance.Wei < value.Wei:
-            message = (
-                f'Too low balance: balance - {round(native_balance.Ether, 2)};'
-                f' fee - {round(value.Ether, 2)}'
-            )
-
-            self.client.account_manager.custom_logger.log_message(
-                status=LogStatus.ERROR, message=message
-            )
-
-            return False
-
-        swap_info = self.set_custom_gas_price(swap_info)
-
-        if not swap_query.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
-                token_contract=swap_query.from_token,
-                spender_address=prepared_tx_params['to'],
-                amount=swap_query.amount_from,
-                swap_info=swap_info,
-                tx_params=prepared_tx_params
-            )
-
-            if hexed_tx_hash:
-                self.client.account_manager.custom_logger.log_message(
-                    LogStatus.APPROVED,
-                    message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
-                )
-                await sleep(20, 50)
-        else:
-            prepared_tx_params['value'] += swap_query.amount_from.Wei
-
-        receipt_status = 0
+        
         try:
+            src_bridge_data = CoredaoData.get_token_bridge_info(
+                network_name=account_network,
+                token_symbol=swap_info.from_token
+            )
+
+            swap_query = await self.compute_source_token_amount(
+                swap_info=swap_info
+            )
+            swap_query.min_to_amount = TokenAmount(
+                amount=swap_query.amount_from.Wei * (1 - swap_info.slippage / 100),
+                decimals=swap_query.from_token.decimals,
+                wei=True
+            ) # check here
+
+            prepared_tx_params = await self._prepare_params(
+                src_bridge_data, swap_query, swap_info
+            )
+
+            if not prepared_tx_params['value']:
+                message = f'Can not get value for ({account_network.upper()})'
+
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.ERROR, message=message
+                )
+
+                return False
+
+            native_balance = await self.client.contract.get_balance()
+            value = TokenAmount(
+                amount=prepared_tx_params['value'],
+                decimals=self.client.account_manager.network.decimals,
+                wei=True
+            )
+
+            if native_balance.Wei < value.Wei:
+                message = (
+                    f'Too low balance: balance - {round(native_balance.Ether, 2)};'
+                    f' fee - {round(value.Ether, 2)}'
+                )
+
+                self.client.account_manager.custom_logger.log_message(
+                    status=LogStatus.ERROR, message=message
+                )
+
+                return False
+
+            swap_info = self.set_custom_gas_price(swap_info)
+
+            if not swap_query.from_token.is_native_token:
+                hexed_tx_hash = await self.approve_interface(
+                    token_contract=swap_query.from_token,
+                    spender_address=prepared_tx_params['to'],
+                    amount=swap_query.amount_from,
+                    swap_info=swap_info,
+                    tx_params=prepared_tx_params
+                )
+
+                if hexed_tx_hash:
+                    self.client.account_manager.custom_logger.log_message(
+                        LogStatus.APPROVED,
+                        message=f"{swap_query.from_token.title} {swap_query.amount_from.Ether}"
+                    )
+                    await sleep(20, 50)
+            else:
+                prepared_tx_params['value'] += swap_query.amount_from.Wei
+
+            receipt_status = 0
+            
             receipt_status, log_status, log_message = await self.perform_bridge(
                 swap_info, swap_query, prepared_tx_params,
                 external_explorer='https://layerzeroscan.com'
             )
-
             self.client.account_manager.custom_logger.log_message(
                 status=log_status, message=log_message
             )
+            
+            wait_time = await self.get_wait_time()
+
+            return wait_time if receipt_status else False
         except Exception as e:
             error = str(e)
             if 'insufficient funds for gas + value' in error:
@@ -129,10 +133,6 @@ class CoreDaoBridge(SwapTask):
                 self.client.account_manager.custom_logger.log_message(
                     status=LogStatus.ERROR, message=error
                 )
-
-        wait_time = await self.get_wait_time()
-
-        return wait_time if receipt_status else False
 
     def set_custom_gas_price(self, swap_info: SwapInfo):
         match self.client.account_manager.network.name:

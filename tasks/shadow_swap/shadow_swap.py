@@ -51,54 +51,55 @@ class ShadowSwap(SwapTask):
 
             return False
 
-        contract = await self.client.contract.get(
-            contract=self.contracts_dict['ShadowRouter']
-        )
-        tx_payload_details = ShadowSwapRoutes.get_tx_payload_details(
-            first_token=swap_info.from_token,
-            second_token=swap_info.to_token
-        )
-        
-        fee = await self.get_fee_for_bridge_back(
-            to_network_name=network_to_check_fee_for_bridge_back.name,
-            from_token=swap_info.from_token
-        )
-        
-        if not swap_info.amount:
-            balance = await self.client.contract.get_balance()
-            if balance.Ether >= fee.Ether:
-                return 1
-            else:
-                swap_info.amount = float(str(fee.Ether - balance.Ether)) + 0.1
-
-        swap_query = await self._create_swap_query(
-            contract=contract,
-            swap_info=swap_info,
-            swap_path=tx_payload_details.swap_path
-        )
-
-        params = TxArgs(
-            amountOutMin=swap_query.min_to_amount.Wei,
-            path=tx_payload_details.swap_path,
-            to=self.client.account_manager.account.address,
-            deadline=int(time.time() + 20 * 60)
-        )
-
-        list_params = params.get_list()
-
-        if (
-            swap_info.from_token != TokenSymbol.CORE
-        ):
-            list_params.insert(0, swap_query.amount_from.Wei)
-
-        tx_params = TxParams(
-            to=contract.address,
-            data=contract.encodeABI(
-                tx_payload_details.method_name,
-                args=tuple(list_params)
-            )
-        )
         try:
+            contract = await self.client.contract.get(
+                contract=self.contracts_dict['ShadowRouter']
+            )
+            tx_payload_details = ShadowSwapRoutes.get_tx_payload_details(
+                first_token=swap_info.from_token,
+                second_token=swap_info.to_token
+            )
+
+            fee = await self.get_fee_for_bridge_back(
+                to_network_name=network_to_check_fee_for_bridge_back.name,
+                from_token=swap_info.from_token
+            )
+
+            if not swap_info.amount:
+                balance = await self.client.contract.get_balance()
+                if balance.Ether >= fee.Ether:
+                    return 1
+                else:
+                    swap_info.amount = float(
+                        str(fee.Ether - balance.Ether)) + 0.1
+
+            swap_query = await self._create_swap_query(
+                contract=contract,
+                swap_info=swap_info,
+                swap_path=tx_payload_details.swap_path
+            )
+
+            params = TxArgs(
+                amountOutMin=swap_query.min_to_amount.Wei,
+                path=tx_payload_details.swap_path,
+                to=self.client.account_manager.account.address,
+                deadline=int(time.time() + 20 * 60)
+            )
+
+            list_params = params.get_list()
+
+            if (
+                swap_info.from_token != TokenSymbol.CORE
+            ):
+                list_params.insert(0, swap_query.amount_from.Wei)
+
+            tx_params = TxParams(
+                to=contract.address,
+                data=contract.encodeABI(
+                    tx_payload_details.method_name,
+                    args=tuple(list_params)
+                )
+            )
             if not swap_query.from_token.is_native_token:
                 hexed_tx_hash = await self.approve_interface(
                     token_contract=swap_query.from_token,
@@ -120,10 +121,12 @@ class ShadowSwap(SwapTask):
             receipt_status, status, message = await self.perform_swap(
                 swap_info, swap_query, tx_params
             )
-
             self.client.account_manager.custom_logger.log_message(
                 status=status, message=message
             )
+
+            wait_time = self.get_wait_time()
+            return wait_time if receipt_status else False
         except web3_exceptions.ContractCustomError as e:
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.ERROR, message='Try to make slippage more'
@@ -139,10 +142,6 @@ class ShadowSwap(SwapTask):
                     status=LogStatus.ERROR, message=error
                 )
 
-        wait_time = self.get_wait_time()
-
-        return wait_time if receipt_status else False
-
     def get_wait_time(self) -> int:
         match self.client.account_manager.network.name:
             case Networks.Core.name:
@@ -155,31 +154,34 @@ class ShadowSwap(SwapTask):
         from_token: str,
         to_network_name: str
     ) -> TokenAmount:
-        src_bridge_data = CoredaoData.get_token_bridge_info(
-            network_name=Networks.Core.name,
-            token_symbol=from_token
-        )        
-        dst_chain_id = CoredaoData.get_chain_id(to_network_name)
-        w3 = self.client.contract.get_web3_with_network(Networks.Core)
-        
-        contract = w3.eth.contract(
-            address=src_bridge_data.bridge_contract.address,
-            abi=src_bridge_data.bridge_contract.abi
-        )
+        try:
+            src_bridge_data = CoredaoData.get_token_bridge_info(
+                network_name=Networks.Core.name,
+                token_symbol=from_token
+            )
+            dst_chain_id = CoredaoData.get_chain_id(to_network_name)
+            w3 = self.client.contract.get_web3_with_network(Networks.Core)
 
-        result = await contract.functions.estimateBridgeFee(
-            dst_chain_id,
-            False,
-            '0x'
-        ).call()
-        
-        fee = TokenAmount(
-            amount=result[0],
-            decimals=Networks.Core.decimals,
-            wei=True
-        )
-        
-        return fee
+            contract = w3.eth.contract(
+                address=src_bridge_data.bridge_contract.address,
+                abi=src_bridge_data.bridge_contract.abi
+            )
+
+            result = await contract.functions.estimateBridgeFee(
+                dst_chain_id,
+                False,
+                '0x'
+            ).call()
+
+            fee = TokenAmount(
+                amount=result[0],
+                decimals=Networks.Core.decimals,
+                wei=True
+            )
+
+            return fee
+        except Exception as e:
+            raise Exception(e)
 
     async def _create_swap_query(
         self,
@@ -204,15 +206,10 @@ class ShadowSwap(SwapTask):
         except web3_exceptions.ContractLogicError as e:
             error = str(e)
             if 'ShadowLibrary: INSUFFICIENT_INPUT_AMOUNT' in error:
-                self.client.account_manager.custom_logger.log_message(
-                    status=LogStatus.ERROR,
-                    message=f'Insufficient {swap_info.from_token} for swap '
-                )
+                raise Exception(
+                    f'Insufficient {swap_info.from_token} for swap ')
         except Exception as e:
-            error = str(e)
-            self.client.account_manager.custom_logger.log_message(
-                status=LogStatus.ERROR, message=error
-            )
+            raise Exception(error)
 
     # async def get_fee_for_bridge(
     #     self,
@@ -245,6 +242,13 @@ class ShadowSwapRoutes(TxPayloadDetailsFetcher):
                     CoreTokenContracts.USDT.address,
                 ]
             ),
+            TokenSymbol.USDC: TxPayloadDetails(
+                method_name='swapExactETHForTokens',
+                addresses=[
+                    CoreTokenContracts.WCORE.address,
+                    CoreTokenContracts.USDC.address,
+                ]
+            ),
         },
         TokenSymbol.USDT: {
             TokenSymbol.CORE: TxPayloadDetails(
@@ -254,5 +258,14 @@ class ShadowSwapRoutes(TxPayloadDetailsFetcher):
                     CoreTokenContracts.WCORE.address
                 ]
             ),
-        }
+        },
+        TokenSymbol.USDC: {
+            TokenSymbol.CORE: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    CoreTokenContracts.USDC.address,
+                    CoreTokenContracts.WCORE.address
+                ]
+            ),
+        },
     }
