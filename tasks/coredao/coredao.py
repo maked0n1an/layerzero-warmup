@@ -19,9 +19,10 @@ from tasks.coredao.coredao_data import CoredaoData
 
 class CoreDaoBridge(SwapTask):
     TO_CORE_NETWORKS = [
+        Networks.Arbitrum,
+        Networks.Avalanche,
         Networks.BSC,
         Networks.Polygon,
-        Networks.Arbitrum
     ]
 
     async def bridge(

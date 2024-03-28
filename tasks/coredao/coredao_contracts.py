@@ -6,9 +6,10 @@ class CoreDaoBridgeContracts:
     TO_CORE_BRIDGE_ABI = read_json(
         path=('data', 'abis', 'layerzero', 'coredao', 'to_core_bridge_abi.json')
     )
-    
+
     FROM_CORE_BRIDGE_ABI = read_json(
-        path=('data', 'abis', 'layerzero', 'coredao', 'from_core_bridge_abi.json')
+        path=('data', 'abis', 'layerzero',
+              'coredao', 'from_core_bridge_abi.json')
     )
 
     BSC = RawContract(
@@ -28,9 +29,15 @@ class CoreDaoBridgeContracts:
         address='0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
         abi=TO_CORE_BRIDGE_ABI
     )
-    
+
     ARBITRUM = RawContract(
         title='OriginalTokenBridge (ARBITRUM)',
+        address='0x29d096cD18C0dA7500295f082da73316d704031A',
+        abi=TO_CORE_BRIDGE_ABI
+    )
+
+    AVALANCHE = RawContract(
+        title='OriginalTokenBridge (AVALANCHE)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
         abi=TO_CORE_BRIDGE_ABI
     )
