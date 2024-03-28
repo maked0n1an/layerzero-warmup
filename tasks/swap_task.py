@@ -225,7 +225,7 @@ class SwapTask:
         is_to_token_price_wei: bool = False
     ) -> SwapQuery:
         """
-        Compute the minimum destination amount for a given swap (works for cross-chain swaps).
+        Compute the minimum destination amount for a given swap (works only for swaps in one network).
 
         Args:
             swap_query (SwapQuery): The query for the swap.
@@ -236,27 +236,31 @@ class SwapTask:
         Returns:
             SwapQuery: The updated query with the minimum destination amount.
         """
-        if swap_info.to_network:
-            dst_network_name = swap_info.to_network.name
-        else:
-            dst_network_name = self.client.account_manager.network.name
+        # if swap_info.to_network:
+        #     dst_network_name = swap_info.to_network.name
+        # else:
+        #     dst_network_name = self.client.account_manager.network.name
 
         if not swap_query.to_token:
             swap_query.to_token = ContractsFactory.get_contract(
-                network_name=dst_network_name,
+                network_name=self.client.account_manager.network.name,
                 token_symbol=swap_info.to_token
             )
 
-        decimals = (
-            await self.client.contract.get_decimals(
-                token_contract=swap_query.to_token
-            )
-            if not swap_info.to_network
-            else await self.client.contract.get_decimals(
-                token_contract=swap_query.to_token,
-                network=swap_info.to_network
-            )
+        decimals = await self.client.contract.get_decimals(
+            token_contract=swap_query.to_token
         )
+
+        # decimals = (
+        #     await self.client.contract.get_decimals(
+        #         token_contract=swap_query.to_token
+        #     )
+        #     if not swap_info.to_network
+        #     else await self.client.contract.get_decimals(
+        #         token_contract=swap_query.to_token,
+        #         network=swap_info.to_network
+        #     )
+        # )
 
         min_amount_out = TokenAmount(
             amount=min_to_amount * (1 - swap_info.slippage / 100),

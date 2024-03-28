@@ -57,4 +57,4 @@ class TokenAmount:
             str: A string representation of the TokenAmount.
 
         """
-        return f'{self.Wei}'
+        return f'{self.Ether}'
