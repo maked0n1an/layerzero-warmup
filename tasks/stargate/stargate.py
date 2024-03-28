@@ -48,6 +48,7 @@ class Stargate(SwapTask):
                 network_name=account_network,
                 token_symbol=full_path
             )
+            
         else:
             src_bridge_info = StargateData.get_token_bridge_info(
                 network_name=account_network,
@@ -210,7 +211,7 @@ class Stargate(SwapTask):
 
             match self.client.account_manager.network:
                 case Networks.BSC:
-                    swap_info.gas_price = 2.5
+                    swap_info.gas_price = 3
 
         swap_info.slippage = (
             slippage
