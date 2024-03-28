@@ -169,6 +169,12 @@ class BscTokenContracts(TokenContractData):
         title=TokenSymbol.USDT,
         address='0x55d398326f99059fF775485246999027B3197955',
     )
+    
+    USDC = TokenContract(
+        title=TokenSymbol.USDC,
+        address='0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+        decimals=18
+    )
 
     BUSD = TokenContract(
         title=TokenSymbol.BUSD,
@@ -195,6 +201,12 @@ class CoreTokenContracts(TokenContractData):
     USDT = TokenContract(
         title=TokenSymbol.USDT,
         address='0x900101d06a7426441ae63e9ab3b9b0f63be145f1',
+        decimals=6
+    )
+    
+    USDC = TokenContract(
+        title=TokenSymbol.USDC,
+        address='0xa4151B2B3e269645181dCcF2D426cE75fcbDeca9',
         decimals=6
     )
     

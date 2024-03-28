@@ -42,7 +42,10 @@ class Networks(metaclass=Singleton):
 
     Avalanche = Network(
         name='avalanche',
-        rpc='https://rpc.ankr.com/avalanche/',
+        rpc=[
+            'https://avalanche-c-chain-rpc.publicnode.com',
+            'https://avalanche.drpc.org',
+        ],
         chain_id=43114,
         tx_type=2,
         coin_symbol=TokenSymbol.AVAX,
