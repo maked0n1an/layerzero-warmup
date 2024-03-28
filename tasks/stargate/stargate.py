@@ -258,8 +258,7 @@ class Stargate(SwapTask):
         router_contract = await self.client.contract.get(
             contract=src_bridge_info.bridge_contract
         )
-        tx_params = TxParams()
-        tx_params['to'] = router_contract.address
+        tx_params = TxParams(to=router_contract.address)
 
         swap_info, multiplier = self.config_some_operations(swap_info)
         swap_query = await self.compute_min_destination_amount(
@@ -517,9 +516,6 @@ class Stargate(SwapTask):
         adapter_params: str,
         use_lz_token: bool = False,
     ) -> TokenAmount:
-        # address = self.to_cut_hex_prefix_and_zfill(
-        #     address
-        # )
         address = abi.encode(
             ["address"],
             [self.client.account_manager.account.address]
