@@ -308,11 +308,9 @@ class Contract:
             if not token_contract.decimals:
                 contract = await self.get_token_contract(token_contract)
                 token_contract.decimals = await contract.functions.decimals().call()
-            decimals = token_contract.decimals
-        else:
-            decimals = await token_contract.functions.decimals().call()
-
-        return decimals
+            return token_contract.decimals
+        
+        return await token_contract.functions.decimals().call()
 
     async def transfer(
         self,
