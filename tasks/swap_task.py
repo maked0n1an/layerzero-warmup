@@ -280,29 +280,28 @@ class SwapTask:
         first_token: str = TokenSymbol.ETH,
         second_token: str = TokenSymbol.USDT
     ) -> float | None:
+        stables_pool = [
+            TokenSymbol.USDT,
+            TokenSymbol.USDC,
+            TokenSymbol.USDC_E,
+            TokenSymbol.USDV
+        ]
+        
         if first_token.startswith('W'):
             first_token = first_token[1:]
 
         if second_token.startswith('W'):
             second_token = second_token[1:]
 
-        match first_token:
-            case TokenSymbol.USDT:
-                return 1
-            case TokenSymbol.USDC:
-                return 1
-            case TokenSymbol.USDV:
-                return 1
-            case TokenSymbol.USDC_E:
-                return 1
+        if first_token in stables_pool:
+            return 1
 
         async with aiohttp.ClientSession() as session:
             price = await self._get_price_from_binance(session, first_token, second_token)
-            if price is None:
-                price = await self._get_price_from_binance(session, first_token, second_token)
-                return 1 / price
-
-            return price
+            if price:
+                return price
+            else:
+                return await self._get_price_from_binance(session, second_token, first_token)
 
     async def get_token_info(self, token_address):
         contract = await self.client.contract.get_token_contract(token=token_address)
