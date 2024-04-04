@@ -306,10 +306,7 @@ class Contract:
 
         if type(token_contract) in ParamsTypes.TokenContract.__args__:
             if not token_contract.decimals:
-                contract = w3.eth.contract(
-                    address=token_contract.address,
-                    abi=token_contract.abi
-                )
+                contract = await self.get_token_contract(token_contract)
                 token_contract.decimals = await contract.functions.decimals().call()
             decimals = token_contract.decimals
         else:
