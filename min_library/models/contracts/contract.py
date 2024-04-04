@@ -201,11 +201,7 @@ class Contract:
             else:
                 abi = DefaultAbis.Token
 
-        contract = self.account_manager.w3.eth.contract(
-            address=address, abi=abi
-        )
-
-        return contract
+        return self.account_manager.w3.eth.contract(address=address, abi=abi)
 
     async def get_approved_amount(
         self,
