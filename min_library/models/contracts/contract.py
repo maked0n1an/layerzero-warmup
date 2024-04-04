@@ -1,3 +1,4 @@
+import random
 from web3 import Web3
 from web3.eth import AsyncEth
 from web3.contract import Contract, AsyncContract
@@ -434,7 +435,7 @@ class Contract:
     def get_web3_with_network(self, network: Network) -> Web3:        
         return Web3(
             Web3.AsyncHTTPProvider(
-                endpoint_uri=network.rpc,
+                endpoint_uri=random.choice(network.rpc),
                 request_kwargs={
                     'proxy': self.account_manager.proxy,
                     'headers': self.account_manager.headers
