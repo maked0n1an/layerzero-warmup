@@ -35,7 +35,7 @@ class AccountManager:
 
         self.w3 = Web3(
             Web3.AsyncHTTPProvider(
-                endpoint_uri=self.network.rpc,
+                endpoint_uri=random.choice(self.network.rpc),
                 request_kwargs={'proxy': self.proxy, 'headers': self.headers}
             ),
             modules={'eth': (AsyncEth,)},
