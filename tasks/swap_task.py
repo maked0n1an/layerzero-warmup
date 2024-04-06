@@ -248,7 +248,7 @@ class SwapTask:
             )
 
         decimals = await self.client.contract.get_decimals(
-            token_contract=swap_query.to_token
+            token_contract=swap_query.from_token
         )
 
         # decimals = (
