@@ -48,7 +48,7 @@ class Stargate(SwapTask):
                 network_name=account_network,
                 token_symbol=full_path
             )
-            
+
         else:
             src_bridge_info = StargateData.get_token_bridge_info(
                 network_name=account_network,
@@ -127,7 +127,7 @@ class Stargate(SwapTask):
         if not swap_query.from_token.is_native_token:
             hexed_tx_hash = await self.approve_interface(
                 token_contract=swap_query.from_token,
-                spender_address=prepared_tx_params['to'],
+                spender_address=prepared_tx_params["to"],
                 amount=swap_query.amount_from,
                 swap_info=swap_info,
                 tx_params=prepared_tx_params
@@ -179,7 +179,7 @@ class Stargate(SwapTask):
             swap_info.from_token == TokenSymbol.USDV
             and swap_info.to_token == TokenSymbol.USDV
         ):
-            multiplier_of_value = 1.01
+            multiplier_of_value = 1.03
             slippage = 0
 
             match self.client.account_manager.network:
@@ -190,7 +190,7 @@ class Stargate(SwapTask):
             swap_info.from_token != TokenSymbol.USDV
             and swap_info.to_token == TokenSymbol.USDV
         ):
-            multiplier_of_value = 1.01
+            multiplier_of_value = 1.02
             slippage = random.randint(3, 5) / 10
 
             # match self.client.account_manager.network:
@@ -481,8 +481,7 @@ class Stargate(SwapTask):
         if src_token_symbol and src_token_symbol.upper() == TokenSymbol.ETH:
             network_name = self.client.account_manager.network.name
 
-            network_data = StargateData.get_network_data(
-                network_name=network_name)
+            network_data = StargateData.get_network_data(network_name)
 
             router = None
             for key, value in network_data.bridge_dict.items():
